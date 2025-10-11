@@ -1,0 +1,12 @@
+fetch('leaflet_coordinates_dataset_100.json')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data).addTo(map);
+
+    const coords = data.features.map(f => [
+      f.geometry.coordinates[1],
+      f.geometry.coordinates[0]
+    ]);
+    L.polyline(coords, { color: 'red' }).addTo(map);
+    map.fitBounds(coords);
+  });

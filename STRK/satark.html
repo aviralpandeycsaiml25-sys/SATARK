@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SATARK - Crime Prediction & Analysis</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
+    :root{
+      --primary-glow:#490613;
+      --secondary-glow:#ff00c1;
+      --bg-color:#0d0c22;
+      --container-bg: rgba(23,22,53,0.75);
+      --border-color: rgba(0,246,255,0.12);
+    }
+    body{
+      font-family:'Roboto',sans-serif;
+      background-color:var(--bg-color);
+      color:#e6eef0;
+      margin:0;
+      min-height:100vh;
+      /* Default background image */
+      background-image: url('https://www.shutterstock.com/shutterstock/photos/78337543/display_1500/stock-photo-group-of-crime-related-d-words-part-of-a-series-78337543.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      /* CSS for smooth background transition */
+      transition: background-image 0.8s ease-in-out;
+    }
+    .font-orbitron{ font-family:'Orbitron',sans-serif; }
+    .data-box{
+      background-color:var(--container-bg);
+      border:1px solid var(--border-color);
+      border-radius:1rem;
+      box-shadow:0 6px 30px rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px); /* Frosted glass effect for better readability */
+    }
+    #map{ height:100%; min-height:360px; border-radius:0.75rem; overflow:hidden; }
+    .leaflet-container{ background:transparent; }
+    .glow { text-shadow: 0 0 8px var(--primary-glow); }
+    
+    /* CSS for clickable boxes */
+    .clickable-box {
+        cursor: pointer;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .clickable-box:hover {
+        transform: scale(1.02);
+        border-color: rgba(0, 246, 255, 0.4);
+    }
+  </style>
+</head>
+<body id="main-bg" class="bg-no-repeat bg-cover">
+
+  <div class="container mx-auto p-6">
+    <header class="text-center mb-6">
+      <h1 class="text-5xl md:text-6xl font-orbitron glow">S A T A R K</h1>
+      <p class="text-gray-400 mt-1">Sentient Analytical Tool for Advanced Risk Kinesis</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg-col-span-1 flex flex-col gap-6">
+        <div id="map-box" class="data-box clickable-box p-4 h-[45vh] md:h-[55vh]">
+          <h2 class="font-orbitron text-lg mb-2 glow text-center">Operational Area</h2>
+          <div id="map"></div>
+        </div>
+
+        <div id="filters-box" class="data-box clickable-box p-4">
+          <h3 class="font-orbitron text-lg mb-3 glow">Filters & Controls</h3>
+          
+          <label class="text-sm text-gray-300 block mb-2">State</label>
+          <select id="state-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
+            <option value="All">All States</option>
+            <option value="Delhi">Delhi</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="West Bengal">West Bengal</option>
+          </select>
+          
+          <label class="text-sm text-gray-300 block mb-2">Crime Type</label>
+          <select id="crime-type-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
+            <option value="All">All</option>
+            <option value="Theft">Theft</option>
+            <option value="Assault">Assault</option>
+            <option value="Burglary">Burglary</option>
+            <option value="Robbery">Robbery</option>
+            <option value="Fraud">Fraud</option>
+            <option value="Vandalism">Vandalism</option>
+            <option value="Kidnapping">Kidnapping</option>
+          </select>
+
+          <button id="refresh-btn" class="w-full py-2 bg-cyan-500 rounded font-bold">Refresh Data</button>
+        </div>
+        
+        <div id="criminals-box" class="data-box clickable-box p-4">
+            <h3 class="font-orbitron text-lg mb-2 glow">Top Criminals</h3>
+            <div id="criminals-list" class="space-y-3 overflow-y-auto max-h-60 pr-2">
+                </div>
+        </div>
+
+        <div id="stats-box" class="data-box clickable-box p-4">
+          <h3 class="font-orbitron text-lg mb-2 glow">Quick Stats</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 data-box rounded text-center">
+              <div class="text-xs text-gray-300">Peak Day</div>
+              <div id="peak-day" class="font-bold text-lg">--</div>
+            </div>
+            <div class="p-3 data-box rounded text-center">
+              <div class="text-xs text-gray-300">Peak Hour</div>
+              <div id="peak-hour" class="font-bold text-lg">--</div>
+            </div>
+            <div class="p-3 data-box rounded text-center col-span-2">
+              <div class="text-xs text-gray-300">Top Crime</div>
+              <div id="top-crime" class="font-bold text-lg">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg-col-span-2 flex flex-col gap-6">
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-xl mb-2 glow">Dashboard</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 data-box text-center">
+              <div class="text-xs text-gray-300">Threat Level</div>
+              <div id="threat-level" class="font-orbitron text-3xl mt-2">--</div>
+            </div>
+            <div class="p-4 data-box text-center">
+              <div class="text-xs text-gray-300">Predicted Hotspot</div>
+              <div id="hotspot-area" class="font-bold mt-2">--</div>
+            </div>
+            <div class="p-4 data-box text-center">
+              <div class="text-xs text-gray-300">Peak Time</div>
+              <div id="peak-time" class="font-bold mt-2">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-xl mb-2 glow">Analysis</h3>
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <h4 class="text-sm text-gray-300">By Day (top 5)</h4>
+              <ul id="by-day" class="text-sm mt-2 space-y-1"></ul>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-sm text-gray-300">By Hour (top 5)</h4>
+              <ul id="by-hour" class="text-sm mt-2 space-y-1"></ul>
+            </div>
+            <div class="w-56">
+              <h4 class="text-sm text-gray-300">Hotspots</h4>
+              <div id="hotspots-list" class="text-sm mt-2 space-y-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-xl mb-2 glow">All Events (click marker for details)</h3>
+          <div class="overflow-y-auto max-h-40">
+            <table class="w-full text-left text-sm">
+              <thead class="text-gray-300">
+                <tr><th class="p-2">City</th><th class="p-2">Category</th><th class="p-2">Timestamp</th></tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+(function(){
+  // --- Map Initialization with Leaflet ---
+  const map = L.map('map').setView([22.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
+
+  const crimesLayer = L.layerGroup().addTo(map);
+  const hotspotsLayer = L.layerGroup().addTo(map);
+  
+  // --- DOM Elements ---
+  const eventsTbody = document.getElementById('events-tbody');
+  const byDayEl = document.getElementById('by-day');
+  const byHourEl = document.getElementById('by-hour');
+  const hotspotsList = document.getElementById('hotspots-list');
+  const peakDayEl = document.getElementById('peak-day');
+  const peakHourEl = document.getElementById('peak-hour');
+  const topCrimeEl = document.getElementById('top-crime');
+  const hotspotAreaEl = document.getElementById('hotspot-area');
+  const peakTimeEl = document.getElementById('peak-time');
+  const threatLevelEl = document.getElementById('threat-level');
+  const refreshBtn = document.getElementById('refresh-btn');
+  const crimeTypeFilter = document.getElementById('crime-type-filter');
+  const stateFilter = document.getElementById('state-filter');
+  const criminalsList = document.getElementById('criminals-list');
+  
+  // --- State ---
+  let currentEvents = [];
+  let currentAnalysis = null;
+  let currentPredict = null;
+
+  // --- Mock Data for Criminals ---
+  const criminalsData = {
+      "Theft": [{ name: "Ravi 'Fingers' Kumar", desc: "Male, 5'7\", slim build, scar above left eye.", reward: "₹50,000" }, { name: "Meena 'Shadow' Devi", desc: "Female, 5'4\", average build, known for disguises.", reward: "₹75,000" }],
+      "Robbery": [{ name: "Vikram 'Tiger' Singh", desc: "Male, 6'1\", muscular build, tattoo of a tiger on neck.", reward: "₹2,00,000" }],
+      "Assault": [{ name: "Sanjay 'The Hammer' Reddy", desc: "Male, 5'11\", stocky, often wears a red bandana.", reward: "₹1,50,000" }, { name: "Priya Chauhan", desc: "Female, 5'6\", athletic, has a noticeable limp.", reward: "₹90,000" }],
+      "Fraud": [{ name: "Anil 'The Ghost' Verma", desc: "Male, approx. 45-55 years, non-descript features, master of identity theft.", reward: "₹5,00,000" }],
+      "Kidnapping": [{ name: "The 'Phantom' Gang", desc: "Group of 3-4 individuals, operate a blue van. Leader is tall with a hoarse voice.", reward: "₹10,00,000" }]
+  };
+
+  function formatDate(iso){ try{ return new Date(iso).toLocaleString('en-IN'); }catch{ return iso; } }
+
+  function applyFilter(events){
+    const type = crimeTypeFilter.value;
+    const state = stateFilter.value;
+    let filtered = events;
+    if (type !== 'All') { filtered = filtered.filter(f => f.properties.category.toLowerCase() === type.toLowerCase()); }
+    if (state !== 'All') { filtered = filtered.filter(f => f.properties.state === state); }
+    return filtered;
+  }
+  
+  function computeTopCrime(events){
+    const count={};
+    for(const f of events){ count[f.properties.category]=(count[f.properties.category]||0)+1; }
+    const top=Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
+    return top?`${top[0]} (${top[1]})`:'--';
+  }
+
+  function renderEvents(events){
+    const filteredEvents = applyFilter(events);
+    eventsTbody.innerHTML = filteredEvents.slice(0, 200).map(f => `<tr class="hover:bg-gray-800"><td class="p-2">${f.properties.city}</td><td class="p-2">${f.properties.category}</td><td class="p-2">${formatDate(f.properties.timestamp)}</td></tr>`).join('');
+  }
+
+  function renderMap(events){
+      crimesLayer.clearLayers();
+      for (const f of applyFilter(events)) {
+          const [lon, lat] = f.geometry.coordinates;
+          const marker = L.circleMarker([lat, lon], { radius: 5, fillColor: "#00f6ff", color: "#fff", weight: 1, fillOpacity: 0.8 });
+          marker.bindPopup(`<b>${f.properties.city}</b><br>${f.properties.category}<br>${formatDate(f.properties.timestamp)}`);
+          crimesLayer.addLayer(marker);
+      }
+  }
+
+  function renderAnalysis(a){
+    byDayEl.innerHTML=Object.entries(a.by_day).slice(0,5).map(([d,v])=>`<li>${d}: <b>${v}</b></li>`).join('');
+    byHourEl.innerHTML=Object.entries(a.by_hour).slice(0,5).map(([d,v])=>`<li>${d}:00 → <b>${v}</b></li>`).join('');
+  }
+
+  function renderHotspots(p){
+    hotspotsLayer.clearLayers(); 
+    hotspotsList.innerHTML = '';
+    p.hotspots.forEach((h, i) => {
+        L.circle([h.latitude, h.longitude], { radius: h.count * 50, color: '#ff00c1', fillOpacity: 0.1 }).addTo(hotspotsLayer);
+        hotspotsList.innerHTML += `<div class="p-1 text-xs">#${i + 1} ${h.latitude.toFixed(2)},${h.longitude.toFixed(2)} — ${h.count} pts</div>`;
+    });
+  }
+  
+  function renderCriminals(crimeType){
+      const data = criminalsData[crimeType] || [];
+      if (data.length === 0) {
+          criminalsList.innerHTML = `<p class="text-sm text-gray-400">No high-profile criminals listed for this category.</p>`;
+          return;
+      }
+      criminalsList.innerHTML = data.map(c => `<div class="p-3 data-box text-xs"><h4 class="font-bold text-sm text-pink-400">${c.name}</h4><p class="text-gray-300 my-1">${c.desc}</p><p class="font-bold">Reward (D/A): <span class="text-cyan-400">${c.reward}</span></p></div>`).join('');
+  }
+
+  function updateStats(){
+    topCrimeEl.textContent=computeTopCrime(currentEvents);
+    peakDayEl.textContent=currentPredict.peak_day;
+    peakHourEl.textContent=currentPredict.peak_hour+":00";
+    hotspotAreaEl.textContent=currentPredict.hotspots[0]?`${currentPredict.hotspots[0].latitude.toFixed(2)},${currentPredict.hotspots[0].longitude.toFixed(2)}`:'--';
+    peakTimeEl.textContent=currentPredict.peak_hour+":00";
+    const maxCnt=Math.max(0, ...currentPredict.hotspots.map(h=>h.count));
+    threatLevelEl.textContent=maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
+  }
+
+  async function loadAll(){
+    refreshBtn.textContent='Loading...'; refreshBtn.disabled=true;
+    const crimes = await fetch('https://run.mocky.io/v3/909185e0-c9f2-4364-8393-2780f23a633a').then(r => r.json());
+    const analysis = await fetch('https://run.mocky.io/v3/4cf19556-2917-4ac5-8664-9218d6333930').then(r => r.json());
+    const predict = await fetch('https://run.mocky.io/v3/16474e1d-3b60-4824-a218-1c39c878f8c4').then(r => r.json());
+    currentEvents=crimes.features; currentAnalysis=analysis; currentPredict=predict;
+    handleFilterChange();
+    renderAnalysis(analysis);
+    renderHotspots(predict);
+    updateStats();
+    refreshBtn.textContent='Refresh Data'; refreshBtn.disabled=false;
+  }
+
+  function handleFilterChange() {
+      renderEvents(currentEvents);
+      renderMap(currentEvents);
+      renderCriminals(crimeTypeFilter.value);
+  }
+
+  // --- Background Changer Logic ---
+  const backgroundImages = {
+      'map-box': 'http://googleusercontent.com/image_collection/image_retrieval/16951664702501174003_0',
+      'filters-box': '
+
+http://googleusercontent.com/image_collection/image_retrieval/3676328352091907638_0
+',
+      'criminals-box': 'http://googleusercontent.com/image_collection/image_retrieval/15212136857319457124_0',
+      'stats-box': 'http://googleusercontent.com/image_collection/image_retrieval/15899118039960444688_0'
+  };
+  
+  const clickableBoxes = document.querySelectorAll('.clickable-box');
+  clickableBoxes.forEach(box => {
+    box.addEventListener('click', function() {
+        const boxId = this.id;
+        const imageUrl = backgroundImages[boxId];
+        if (imageUrl) { document.body.style.backgroundImage = `url('${imageUrl}')`; }
+    });
+  });
+  
+  // --- Event Listeners ---
+  refreshBtn.addEventListener('click', loadAll);
+  crimeTypeFilter.addEventListener('change', handleFilterChange);
+  stateFilter.addEventListener('change', handleFilterChange);
+  
+  // --- Initial Load ---
+  loadAll();
+})();
+</script>
+
+</body>
+</html>
