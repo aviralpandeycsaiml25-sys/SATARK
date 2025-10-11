@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SATARK - Crime Prediction & Analysis</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS & JS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <!-- Leaflet MarkerCluster CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
+
+    :root{
+      --primary-glow:#490613;
+      --secondary-glow:#ff00c1;
+      --bg-color:#0d0c22;
+      --container-bg: rgba(23,22,53,0.85);
+      --border-color: rgba(0,246,255,0.12);
+      --muted:#9fb9c1;
+    }
+
+    html,body{
+      height:100%;
+    }
+
+    body{
+      font-family:'Roboto',sans-serif;
+      background: radial-gradient(ellipse at top right, rgba(73,6,19,0.12), transparent 25%), var(--bg-color);
+      color:#e6eef0;
+      margin:0;
+      min-height:100vh;
+    }
+
+    .font-orbitron{ font-family:'Orbitron',sans-serif; letter-spacing:0.06em; }
+
+    /* Data boxes (glow + hover) */
+    .data-box{
+      background-color:var(--container-bg);
+      border:1px solid var(--border-color);
+      border-radius:1rem;
+      box-shadow:0 8px 40px rgba(0,0,0,0.6);
+      transition: transform 220ms cubic-bezier(.2,.9,.3,1), box-shadow 220ms, border-color 220ms;
+      position:relative;
+      overflow:hidden;
+    }
+    .data-box:hover{
+      transform: translateY(-8px);
+      border-color: rgba(255,0,193,0.6);
+      box-shadow: 0 20px 60px rgba(255,0,193,0.06), 0 6px 30px rgba(0,0,0,0.6);
+    }
+    .data-box .header {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:1rem;
+    }
+    .glow { text-shadow: 0 0 10px var(--primary-glow); color: #f5eef6; }
+
+    /* map container */
+    #map{ height:420px; min-height:320px; border-radius:0.75rem; overflow:hidden; }
+
+    .leaflet-container{ background:transparent; }
+
+    /* quick stat cards */
+    .stat-card { padding:1rem; border-radius:0.6rem; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.1)); }
+
+    /* hover glowing image boxes for crime types */
+    .crime-image-container {
+      position:relative;
+      border-radius:0.75rem;
+      overflow:hidden;
+      transition: transform 300ms ease, box-shadow 300ms ease;
+      border:1px solid rgba(255,255,255,0.03);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
+    }
+    .crime-image-container:hover {
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: 0 10px 40px rgba(255,0,193,0.08);
+      border-color: var(--secondary-glow);
+    }
+    .crime-image {
+      display:block; width:100%; height:160px; object-fit:cover; transform-origin:center center; transition: transform 300ms ease;
+    }
+    .crime-image-container:hover .crime-image { transform: scale(1.08); }
+    .crime-overlay {
+      position:absolute; left:0; right:0; bottom:0;
+      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 65%);
+      color:#fff; padding:0.75rem 0.9rem; transform: translateY(100%); transition: transform 260ms ease;
+    }
+    .crime-image-container:hover .crime-overlay { transform: translateY(0%); }
+
+    /* bigger layout (increase size & spacing) */
+    .container {
+      max-width:1400px;
+      padding-left:28px;
+      padding-right:28px;
+    }
+
+    /* tables */
+    table { border-collapse:collapse; width:100%; }
+    table td, table th { padding:8px 10px; }
+
+    /* custom cursor */
+    .custom-cursor { cursor:none; }
+    .cursor {
+      width: 34px;
+      height: 34px;
+      border: 2px solid var(--secondary-glow);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      transform: translate(-50%,-50%);
+      transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.12s ease;
+      z-index: 99999;
+      mix-blend-mode: screen;
+      box-shadow: 0 0 16px rgba(255,0,193,0.22);
+      background: rgba(255,255,255,0.02);
+    }
+    .cursor-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--primary-glow);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      transform: translate(-50%,-50%);
+      z-index: 99999;
+    }
+    .cursor.active { transform: translate(-50%,-50%) scale(0.6); background: rgba(255,0,193,0.16); }
+
+    /* small responsive tweaks */
+    @media (max-width: 900px){
+      #map{ min-height:260px; height:260px; }
+      .crime-image { height:120px; }
+    }
+
+    /* subtle thin scrollbars */
+    ::-webkit-scrollbar { height:7px; width:7px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius:99px; }
+  </style>
+</head>
+<body id="main-bg" class="bg-no-repeat bg-cover">
+
+  <!-- Custom cursor elements -->
+  <div id="custom-cursor" class="cursor" aria-hidden="true"></div>
+  <div id="custom-cursor-dot" class="cursor-dot" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden fixed inset-0 z-50 items-center justify-center" style="display:none;">
+    <div class="data-box p-6 w-full max-w-2xl">
+      <div class="flex justify-between items-center mb-3">
+        <h2 id="modal-title" class="font-orbitron text-2xl glow">Details</h2>
+        <button onclick="hideModal()" class="text-sm text-gray-300">Close</button>
+      </div>
+      <div id="modal-body" class="whitespace-pre-wrap text-sm text-gray-300 mb-3"></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <canvas id="modal-pie" width="300" height="220"></canvas>
+        <canvas id="modal-line" width="300" height="220"></canvas>
+      </div>
+      <div class="mt-4"><button onclick="hideModal()" class="w-full py-2 rounded bg-gradient-to-r from-pink-500 to-purple-500 font-bold">Close</button></div>
+    </div>
+  </div>
+
+  <div class="container mx-auto py-8">
+    <header class="text-center mb-6">
+      <h1 class="text-5xl md:text-6xl font-orbitron glow">S A T A R K</h1>
+      <p class="text-gray-400 mt-1">Sentient Analytical Tool for Advanced Risk Kinesis</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- left column -->
+      <div class="lg:col-span-1 flex flex-col gap-6">
+        <div class="data-box p-4 h-[50vh] md:h-[70vh]">
+          <div class="header mb-2">
+            <h2 class="font-orbitron text-lg glow">Operational Area</h2>
+            <div style="font-size:12px;color:var(--muted)">Live</div>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-lg mb-3 glow">Filters & Controls</h3>
+          <label class="text-sm text-gray-300 block mb-2">Crime Type</label>
+          <select id="crime-type-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
+            <option value="All">All</option>
+            <option value="Theft">Theft</option>
+            <option value="Assault">Assault</option>
+            <option value="Burglary">Burglary</option>
+            <option value="Robbery">Robbery</option>
+            <option value="Fraud">Fraud</option>
+            <option value="Vandalism">Vandalism</option>
+            <option value="Kidnapping">Kidnapping</option>
+          </select>
+
+          <label class="text-sm text-gray-300 block mb-2">State</label>
+          <select id="state-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
+            <option value="">All States</option>
+            <option value="Andhra Pradesh">Andhra Pradesh</option>
+            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+            <option value="Assam">Assam</option>
+            <option value="Bihar">Bihar</option>
+            <option value="Chhattisgarh">Chhattisgarh</option>
+            <option value="Goa">Goa</option>
+            <option value="Gujarat">Gujarat</option>
+            <option value="Haryana">Haryana</option>
+            <option value="Himachal Pradesh">Himachal Pradesh</option>
+            <option value="Jharkhand">Jharkhand</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="Kerala">Kerala</option>
+            <option value="Madhya Pradesh">Madhya Pradesh</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Manipur">Manipur</option>
+            <option value="Meghalaya">Meghalaya</option>
+            <option value="Mizoram">Mizoram</option>
+            <option value="Nagaland">Nagaland</option>
+            <option value="Odisha">Odisha</option>
+            <option value="Punjab">Punjab</option>
+            <option value="Rajasthan">Rajasthan</option>
+            <option value="Sikkim">Sikkim</option>
+            <option value="Tamil Nadu">Tamil Nadu</option>
+            <option value="Telangana">Telangana</option>
+            <option value="Tripura">Tripura</option>
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+            <option value="Uttarakhand">Uttarakhand</option>
+            <option value="West Bengal">West Bengal</option>
+            <option value="Delhi">Delhi</option>
+          </select>
+
+          <button id="refresh-btn" class="w-full py-2 bg-cyan-500 rounded font-bold">Refresh Data</button>
+        </div>
+
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-lg mb-2 glow">Quick Stats</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 data-box rounded text-center">
+              <div class="text-xs text-gray-300">Peak Day</div>
+              <div id="peak-day" class="font-bold text-lg">--</div>
+            </div>
+            <div class="p-3 data-box rounded text-center">
+              <div class="text-xs text-gray-300">Peak Hour</div>
+              <div id="peak-hour" class="font-bold text-lg">--</div>
+            </div>
+            <div class="p-3 data-box rounded text-center col-span-2">
+              <div class="text-xs text-gray-300">Top Crime</div>
+              <div id="top-crime" class="font-bold text-lg">--</div>
+            </div>
+          </div>
+        </div>
+        <!-- Top 3 offenders (floating alternative kept minimal for now) -->
+        <div class="data-box p-3">
+          <h4 class="font-orbitron text-sm glow">Top 3 Offenders / Cities</h4>
+          <ol id="top3-list" class="mt-2 text-sm space-y-1 text-gray-200"></ol>
+        </div>
+      </div>
+
+      <!-- right column (wider) -->
+      <div class="lg:col-span-2 flex flex-col gap-6">
+        <div class="data-box p-4">
+          <div class="header mb-3">
+            <h3 class="font-orbitron text-xl glow">Dashboard</h3>
+            <div style="font-size:12px;color:var(--muted)">Interactive Insights</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 stat-card text-center">
+              <div class="text-xs text-gray-300">Threat Level</div>
+              <div id="threat-level" class="font-orbitron text-3xl mt-2">--</div>
+            </div>
+            <div class="p-4 stat-card text-center">
+              <div class="text-xs text-gray-300">Predicted Hotspot</div>
+              <div id="hotspot-area" class="font-bold mt-2">--</div>
+            </div>
+            <div class="p-4 stat-card text-center">
+              <div class="text-xs text-gray-300">Peak Time</div>
+              <div id="peak-time" class="font-bold mt-2">--</div>
+            </div>
+          </div>
+
+          <!-- big row: state-wise charts -->
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="data-box p-4">
+              <div class="header mb-2">
+                <h4 class="font-orbitron text-lg glow">State Crime Trend</h4>
+                <div style="font-size:12px;color:var(--muted)" id="trend-subtitle">Select a state to view details</div>
+              </div>
+              <div class="chart-container mt-3">
+                <canvas id="stateTrendChart" height="160"></canvas>
+              </div>
+            </div>
+
+            <div class="data-box p-4">
+              <div class="header mb-2">
+                <h4 class="font-orbitron text-lg glow">State Crime Distribution</h4>
+                <div style="font-size:12px;color:var(--muted)">Top categories</div>
+              </div>
+              <div class="chart-container mt-3">
+                <canvas id="stateDistributionChart" height="160"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- analysis and image boxes -->
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-xl mb-2 glow">Analysis</h3>
+          <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+              <h4 class="text-sm text-gray-300">By Day (top 5)</h4>
+              <ul id="by-day" class="text-sm mt-2 space-y-1"></ul>
+            </div>
+            <div class="flex-1">
+              <h4 class="text-sm text-gray-300">By Hour (top 5)</h4>
+              <ul id="by-hour" class="text-sm mt-2 space-y-1"></ul>
+            </div>
+            <div class="w-72">
+              <h4 class="text-sm text-gray-300">Hotspots</h4>
+              <div id="hotspots-list" class="text-sm mt-2 space-y-1"></div>
+            </div>
+          </div>
+
+          <!-- crime images (glowing hover boxes) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div class="crime-image-container p-0">
+              <img id="img-theft" class="crime-image" src="https://imgs.search.brave.com/vQsEQ7cRbT_hqG794EOnerlHKaHHbodqGiQGU64Z5-c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90aHVt/YnMuZHJlYW1zdGlt/ZS5jb20vYi90aGll/Zi10YWtpbmctbW9u/ZXktb3V0LXN0ZWVs/LXNhZmUtaW5kb29y/cy1uaWdodC1jbG9z/ZXVwLTE3MDk1OTYx/NS5qcGc" alt="Theft">
+              <div class="crime-overlay">
+                <h5 class="font-orbitron">Theft</h5>
+                <p id="theft-stats" class="text-sm text-gray-200">--</p>
+              </div>
+            </div>
+
+            <div class="crime-image-container p-0">
+              <img id="img-assault" class="crime-image" src="https://imgs.search.brave.com/iU1w0tkSB-qduFx4R2ZsemGraDlB89DuqXNPC5QwRdU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjE4/MTUxMzM0My9waG90/by9hYnN0cmFjdC1z/aWxob3VldHRlLmpw/Zz9zPTYxMng2MTIm/dz0wJms9MjAmYz1h/MXhpbjNjZzJhZ01y/OE9RZ282X2xyZjUt/cVlsaGhzRllHd0lR/Nm1LUGFzPQ" alt="Assault">
+              <div class="crime-overlay">
+                <h5 class="font-orbitron">Assault</h5>
+                <p id="assault-stats" class="text-sm text-gray-200">--</p>
+              </div>
+            </div>
+
+            <div class="crime-image-container p-0">
+              <img id="img-fraud" class="crime-image" src="https://imgs.search.brave.com/mGjUhmwddB9gKe8Hgkzq12fPeiLYfcTd5lpCuKyeVHo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzE2LzgyLzg5LzMy/LzM2MF9GXzE2ODI4/OTMyNDhfTkg3REJS/dXZqbTNST2xRN1Fl/dDVPSDR5eTE3ZVkz/eUMuanBn" alt="Fraud">
+              <div class="crime-overlay">
+                <h5 class="font-orbitron">Fraud</h5>
+                <p id="fraud-stats" class="text-sm text-gray-200">--</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-box p-4">
+          <h3 class="font-orbitron text-xl mb-2 glow">All Events (click marker for details)</h3>
+          <div class="overflow-y-auto max-h-56">
+            <table class="w-full text-left text-sm">
+              <thead class="text-gray-300">
+                <tr><th class="p-2">City</th><th class="p-2">Category</th><th class="p-2">State</th><th class="p-2">Timestamp</th></tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+<script>
+/* MAIN FRONTEND SCRIPT
+   - fetches /api/crimes, /api/analysis, /api/predict, /api/states
+   - renders map, events, analysis, state charts and images
+   - custom cursor and hover animations
+*/
+
+(function(){
+  // map
+  const map = L.map('map', { scrollWheelZoom:false }).setView([22.5937,78.9629], 5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  // Use marker clustering for performance
+  const crimesLayer = L.markerClusterGroup();
+  map.addLayer(crimesLayer);
+  const hotspotsLayer = L.layerGroup().addTo(map);
+
+  // DOM refs
+  const eventsTbody = document.getElementById('events-tbody');
+  const byDayEl = document.getElementById('by-day');
+  const byHourEl = document.getElementById('by-hour');
+  const hotspotsList = document.getElementById('hotspots-list');
+  const peakDayEl = document.getElementById('peak-day');
+  const peakHourEl = document.getElementById('peak-hour');
+  const topCrimeEl = document.getElementById('top-crime');
+  const hotspotAreaEl = document.getElementById('hotspot-area');
+  const peakTimeEl = document.getElementById('peak-time');
+  const threatLevelEl = document.getElementById('threat-level');
+  const refreshBtn = document.getElementById('refresh-btn');
+  const crimeTypeFilter = document.getElementById('crime-type-filter');
+  const stateFilter = document.getElementById('state-filter');
+
+  const theftStats = document.getElementById('theft-stats');
+  const assaultStats = document.getElementById('assault-stats');
+  const fraudStats = document.getElementById('fraud-stats');
+
+  const trendSubtitle = document.getElementById('trend-subtitle');
+
+  // charts
+  let stateTrendChart = null;
+  let stateDistributionChart = null;
+
+  let currentEvents = [];
+  let currentAnalysis = null;
+  let currentPredict = null;
+  let statesData = null;
+
+  // custom cursor
+  const cursor = document.getElementById('custom-cursor');
+  const cursorDot = document.getElementById('custom-cursor-dot');
+  document.body.classList.add('custom-cursor');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    cursorDot.style.left = e.clientX + 'px';
+    cursorDot.style.top = e.clientY + 'px';
+  });
+  document.addEventListener('mousedown', ()=> cursor.classList.add('active'));
+  document.addEventListener('mouseup', ()=> cursor.classList.remove('active'));
+
+  function formatDate(iso){ try{ return new Date(iso).toLocaleString(); }catch{ return iso; } }
+
+  // Filters events by selected crime type and/or state on client
+  function applyFilter(events){
+    const type = crimeTypeFilter.value;
+    const state = stateFilter.value;
+    let out = events;
+    if(type && type!=='All'){
+      out = out.filter(f => f.properties.category && f.properties.category.toLowerCase()===type.toLowerCase());
+    }
+    if(state){
+      out = out.filter(f => f.properties.state && f.properties.state.toLowerCase()===state.toLowerCase());
+    }
+    return out;
+  }
+
+  function computeTopCrime(events){
+    const count={};
+    for(const f of events){ const c=f.properties.category; count[c]=(count[c]||0)+1; }
+    const top = Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
+    return top? `${top[0]} (${top[1]})` : '--';
+  }
+
+  // Pagination for events table
+  let eventsPerPage = 50;
+  let currentPage = 1;
+  function renderEvents(events){
+    eventsTbody.innerHTML='';
+    const filtered = applyFilter(events);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / eventsPerPage));
+    if(currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage-1)*eventsPerPage;
+    const page = filtered.slice(start, start + eventsPerPage);
+    for(const f of page){
+      const tr=document.createElement('tr');
+      tr.innerHTML = '<td class="p-2">' + (f.properties.city || '--') + '</td>' +
+                     '<td class="p-2">' + (f.properties.category || '--') + '</td>' +
+                     '<td class="p-2">' + (f.properties.state || '--') + '</td>' +
+                     '<td class="p-2">' + formatDate(f.properties.timestamp) + '</td>';
+      eventsTbody.appendChild(tr);
+    }
+    // render simple pager
+    renderPager(totalPages);
+  }
+
+  const pagerContainer = document.createElement('div');
+  pagerContainer.className = 'flex gap-2 items-center mt-2';
+  function renderPager(totalPages){
+    pagerContainer.innerHTML = '';
+    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = currentPage<=1;
+    prev.className='px-2 py-1 bg-gray-800 rounded text-sm';
+    prev.addEventListener('click', ()=>{ currentPage--; renderEvents(currentEvents); });
+    const next = document.createElement('button'); next.textContent='Next'; next.disabled = currentPage>=totalPages;
+    next.className='px-2 py-1 bg-gray-800 rounded text-sm';
+    next.addEventListener('click', ()=>{ currentPage++; renderEvents(currentEvents); });
+    const info = document.createElement('div'); info.className='text-sm text-gray-300'; info.textContent = `Page ${currentPage} / ${totalPages}`;
+    pagerContainer.appendChild(prev); pagerContainer.appendChild(info); pagerContainer.appendChild(next);
+    // ensure pager appears below the table
+    const parent = eventsTbody.parentElement.parentElement; // table wrapper
+    if(!parent.querySelector('.pager')){
+      const pwrap = document.createElement('div'); pwrap.className='pager mt-2'; pwrap.appendChild(pagerContainer); parent.appendChild(pwrap);
+    }
+  }
+
+  function renderMap(events){
+    crimesLayer.clearLayers();
+    crimesLayer.clearLayers();
+    for(const f of applyFilter(events)){
+      const [lon,lat]=f.geometry.coordinates;
+      const marker = L.circleMarker([lat,lon],{radius:6,fillOpacity:0.9,color:'#ff00c1',weight:1});
+      const popupHtml = '<b>' + (f.properties.city||'') + '</b><br>' + (f.properties.category||'') + '<br>' + formatDate(f.properties.timestamp) + '<br><i>' + (f.properties.state||'') + '</i>';
+      marker.bindPopup(popupHtml);
+      // on click, fetch location summary and show modal charts
+      marker.on('click', async ()=>{
+        try{
+          const res = await fetch('/api/location_summary?lat=' + lat + '&lon=' + lon + '&radius_km=5');
+          if(res.ok){
+            const summary = await res.json();
+            showLocationModal(f, summary);
+          } else {
+            showLocationModal(f, null);
+          }
+        }catch(e){ console.warn('location_summary fetch failed', e); showLocationModal(f, null); }
+      });
+      crimesLayer.addLayer(marker);
+    }
+  }
+
+  // modal helpers
+  const modal = document.getElementById('modal');
+  const modalBody = document.getElementById('modal-body');
+  let modalPie=null, modalLine=null;
+  function hideModal(){ modal.style.display='none'; modal.classList.add('hidden'); }
+  window.hideModal = hideModal;
+
+  function showLocationModal(feature, summary){
+    modal.style.display='flex'; modal.classList.remove('hidden');
+    modalBody.textContent = JSON.stringify(feature.properties, null, 2);
+    // render pie & line from summary (or fallback)
+    const pieCtx = document.getElementById('modal-pie').getContext('2d');
+    const lineCtx = document.getElementById('modal-line').getContext('2d');
+    if(modalPie) modalPie.destroy(); if(modalLine) modalLine.destroy();
+    const dist = (summary && summary.distribution) || { [feature.properties.category]: 1 };
+    modalPie = new Chart(pieCtx, { type:'pie', data:{ labels:Object.keys(dist), datasets:[{ data:Object.values(dist), backgroundColor:Object.keys(dist).map((_,i)=>`hsl(${i*60},80%,60%)`) }] }, options:{ plugins:{ legend:{ labels:{ color:'#e6eef0' } } } } });
+    const ts = (summary && summary.time_series) || { [new Date().toISOString().slice(0,10)]: 1 };
+    const labels = Object.keys(ts).sort(); const data = labels.map(d=>ts[d]);
+    modalLine = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Events',
+            data: data,
+            borderColor: '#00f7ff',
+            backgroundColor: 'rgba(0,247,255,0.08)'
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: { ticks: { color: '#cbd5e1' } },
+          y: { ticks: { color: '#cbd5e1' } }
+        },
+        plugins: { legend: { labels: { color: '#e6eef0' } } }
+      }
+    });
+  }
+
+  function renderAnalysis(a){
+    byDayEl.innerHTML = Object.entries(a.by_day || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>'<li>'+d+': <b>'+v+'</b></li>').join('');
+    byHourEl.innerHTML = Object.entries(a.by_hour || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>'<li>'+d+':00 → <b>'+v+'</b></li>').join('');
+  }
+
+  function renderHotspots(p){
+    hotspotsLayer.clearLayers(); hotspotsList.innerHTML='';
+    (p.hotspots||[]).forEach((h,i)=>{
+      const c=L.circle([h.latitude,h.longitude],{radius:Math.max(50,h.count*45),color:'#ff00c1',fillOpacity:0.08}).addTo(hotspotsLayer);
+      hotspotsList.innerHTML += '<div class="p-1 text-xs">#' + (i+1) + ' ' + h.latitude.toFixed(2) + ',' + h.longitude.toFixed(2) + ' — ' + h.count + ' pts</div>';
+    });
+  }
+
+  function updateStats(){
+  topCrimeEl.textContent=computeTopCrime(currentEvents);
+  peakDayEl.textContent=currentPredict?currentPredict.peak_day:'--';
+  peakHourEl.textContent=(currentPredict?currentPredict.peak_hour:'--') + ":00";
+  hotspotAreaEl.textContent = (currentPredict && currentPredict.hotspots && currentPredict.hotspots[0]) ? (currentPredict.hotspots[0].latitude.toFixed(2) + ',' + currentPredict.hotspots[0].longitude.toFixed(2)) : '--';
+  peakTimeEl.textContent=(currentPredict?currentPredict.peak_hour:'--') + ":00";
+    const maxCnt = currentPredict && currentPredict.hotspots && currentPredict.hotspots.length ? Math.max(...currentPredict.hotspots.map(h=>h.count)) : 0;
+    threatLevelEl.textContent = maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
+  }
+
+  // Charts init
+  function initCharts(){
+    const trendCtx = document.getElementById('stateTrendChart').getContext('2d');
+    const distCtx = document.getElementById('stateDistributionChart').getContext('2d');
+    stateTrendChart = new Chart(trendCtx, {
+      type:'line',
+      data: { labels: [], datasets: [{ label:'Incidents', data: [], borderColor: 'rgba(255,0,193,1)', backgroundColor:'rgba(255,0,193,0.08)', tension:0.3, fill:true }] },
+      options: { responsive:true, plugins:{legend:{display:false}}, scales:{x:{ ticks:{color:'#e6eef0'} }, y:{ ticks:{color:'#e6eef0'} }} }
+    });
+    stateDistributionChart = new Chart(distCtx, {
+      type:'doughnut',
+      data:{ labels: [], datasets:[{ data: [], backgroundColor: ['rgba(255,0,193,0.6)','rgba(0,246,255,0.6)','rgba(75,192,192,0.6)','rgba(255,159,64,0.6)','rgba(153,102,255,0.6)'] }] },
+      options: { responsive:true, plugins:{legend:{position:'bottom', labels:{color:'#e6eef0'}}} }
+    });
+  }
+
+  // Update state charts and image stats
+  function updateStateUI(stateName){
+    if(!statesData) return;
+    if(!stateName){
+      stateTrendChart.data.labels = [];
+      stateTrendChart.data.datasets[0].data = [];
+      stateTrendChart.update();
+      stateDistributionChart.data.labels = [];
+      stateDistributionChart.data.datasets[0].data = [];
+      stateDistributionChart.update();
+      trendSubtitle.textContent = "Select a state to view details";
+      theftStats.textContent = assaultStats.textContent = fraudStats.textContent = '--';
+      return;
+    }
+    const counts = statesData.state_counts || {};
+    const perCat = statesData.per_state_category || {};
+    const perSeries = statesData.per_state_series || {};
+  trendSubtitle.textContent = `${stateName} — ${counts[stateName] || 0} incidents`;
+
+    // series -> aggregate by YEAR for a 'past years' view
+    const series = perSeries[stateName] || {};
+    // convert keys (YYYY-MM-DD) to year and sum
+    const yearly = {};
+    Object.keys(series || {}).forEach(k=>{
+      const year = (''+k).slice(0,4);
+      if(!year) return;
+      yearly[year] = (yearly[year]||0) + (series[k]||0);
+    });
+    const years = Object.keys(yearly).sort();
+    const yearData = years.map(y=>yearly[y]);
+
+    stateTrendChart.data.labels = years;
+    stateTrendChart.data.datasets[0].data = yearData;
+    stateTrendChart.update();
+
+    const cats = perCat[stateName] || {};
+    const catKeys = Object.keys(cats).slice(0,8);
+    const catVals = catKeys.map(k => cats[k]);
+
+    stateDistributionChart.data.labels = catKeys;
+    stateDistributionChart.data.datasets[0].data = catVals;
+    stateDistributionChart.update();
+
+    // update image stats (theft/assault/fraud)
+    const total = Object.values(cats).reduce((s,n)=>s+(n||0),0) || 1;
+    const theft = cats['Theft']||0;
+    const assault = cats['Assault']||0;
+    const fraud = cats['Fraud']||0;
+  theftStats.textContent = `${theft} cases — ${((theft/total)*100).toFixed(1)}%`;
+  assaultStats.textContent = `${assault} cases — ${((assault/total)*100).toFixed(1)}%`;
+  fraudStats.textContent = `${fraud} cases — ${((fraud/total)*100).toFixed(1)}%`;
+
+    // also re-fetch crimes for that state and update map / events
+    loadCrimes({state: stateName});
+  }
+
+  // Load states summary
+  async function loadStates(){
+    try{
+      const r = await fetch('/api/states');
+      statesData = await r.json();
+      // populate state selector
+      const stateCounts = statesData.state_counts || {};
+      const keys = Object.keys(stateCounts || {});
+      if(keys.length){
+        // reorder select so most frequent states appear first
+        const sorted = keys.sort((a,b)=>stateCounts[b]-stateCounts[a]);
+        let html = '<option value="">All States</option>';
+        for(const s of sorted){ html += `<option value="${s}">${s} — ${stateCounts[s]}</option>`; }
+        stateFilter.innerHTML = html;
+      }
+      // ensure single change listener
+      if(!stateFilter._hasChange){
+        stateFilter.addEventListener('change', (e)=>{ updateStateUI(e.target.value); });
+        stateFilter._hasChange = true;
+      }
+    }catch(e){
+      console.error('loadStates error', e);
+    }
+  }
+
+  // load crimes optionally filtered
+  async function loadCrimes(opts = {}){
+    refreshBtn.textContent = 'Loading...';
+    refreshBtn.disabled = true;
+    try{
+      let url = '/api/crimes?limit=2000';
+      if(opts.state) url += '&state=' + encodeURIComponent(opts.state);
+      if(opts.category) url += '&category=' + encodeURIComponent(opts.category);
+      const r = await fetch(url);
+      const data = await r.json();
+      currentEvents = data.features || [];
+      renderEvents(currentEvents);
+      renderMap(currentEvents);
+    }catch(e){
+      console.error('loadCrimes error', e);
+    }finally{
+      refreshBtn.textContent = 'Refresh Data';
+      refreshBtn.disabled = false;
+    }
+  }
+
+  async function loadAll(){
+    refreshBtn.textContent='Loading...'; refreshBtn.disabled=true;
+    try{
+      const [crimesRes, analysisRes, predictRes] = await Promise.all([
+        fetch('/api/crimes?limit=2000').then(r=>r.json()),
+        fetch('/api/analysis').then(r=>r.json()),
+        fetch('/api/predict').then(r=>r.json())
+      ]);
+      currentEvents = crimesRes.features || [];
+      currentAnalysis = analysisRes;
+      currentPredict = predictRes;
+      renderEvents(currentEvents);
+      renderMap(currentEvents);
+      renderAnalysis(currentAnalysis);
+      renderHotspots(currentPredict);
+      updateStats();
+      updateStateUI(stateFilter.value); // refresh state UI if selected
+
+      // populate quick summary panels
+      try{
+        // top crime from analysis.distribution
+        if(currentAnalysis && currentAnalysis.distribution){
+          const dist = currentAnalysis.distribution;
+          const top = Object.entries(dist).sort((a,b)=>b[1]-a[1])[0];
+          topCrimeEl.textContent = top ? (top[0] + ' (' + top[1] + ')') : '--';
+        }
+
+        // peak day/hour from predict
+        if(currentPredict){
+          peakDayEl.textContent = currentPredict.peak_day || '--';
+          peakHourEl.textContent = (currentPredict.peak_hour !== undefined) ? (currentPredict.peak_hour + ':00') : '--';
+          hotspotAreaEl.textContent = (currentPredict.hotspots && currentPredict.hotspots[0]) ? (currentPredict.hotspots[0].latitude.toFixed(2) + ',' + currentPredict.hotspots[0].longitude.toFixed(2)) : '--';
+          const maxCnt = currentPredict.hotspots ? Math.max(...currentPredict.hotspots.map(h=>h.count)) : 0;
+          threatLevelEl.textContent = maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
+        }
+
+        // small image stats (from distribution of currentAnalysis)
+        if(currentAnalysis && currentAnalysis.distribution){
+          const cats = currentAnalysis.distribution;
+          const total = Object.values(cats).reduce((s,n)=>s+(n||0),0) || 1;
+          const theft = cats['Theft']||0;
+          const assault = cats['Assault']||0;
+          const fraud = cats['Fraud']||0;
+          theftStats.textContent = theft + ' cases — ' + ((theft/total)*100).toFixed(1) + '%';
+          assaultStats.textContent = assault + ' cases — ' + ((assault/total)*100).toFixed(1) + '%';
+          fraudStats.textContent = fraud + ' cases — ' + ((fraud/total)*100).toFixed(1) + '%';
+        }
+
+        // top offenders (call backend)
+        try{
+          const t = await fetch('/api/top_offenders?limit=3').then(r=>r.json());
+          const list = t.map(item => '<li><b>'+item.name+'</b> — '+item.count+' events</li>').join('');
+          document.getElementById('top3-list').innerHTML = list || '<li class="text-gray-400">No data</li>';
+        }catch(e){ console.warn('top_offenders fetch failed', e); }
+      }catch(e){ console.warn('populate summaries failed', e); }
+    }catch(e){
+      console.error('loadAll error', e);
+    }finally{
+      refreshBtn.textContent='Refresh Data'; refreshBtn.disabled=false;
+    }
+  }
+
+  // event handlers
+  refreshBtn.addEventListener('click', ()=> {
+    loadAll();
+    loadStates();
+  });
+  crimeTypeFilter.addEventListener('change', ()=> {
+    // re-render client-side
+    renderEvents(currentEvents);
+    renderMap(currentEvents);
+  });
+
+  // initialize
+  initCharts();
+  loadStates();
+  loadAll();
+
+  // quick UI utility: click a row to show details in modal (not required but helpful)
+  // (we add a simple handler to show the first event detail when clicking the map)
+  map.on('click', ()=> {
+    // noop: reserved
+  });
+
+})();
+</script>
+
+</body>
+</html>
