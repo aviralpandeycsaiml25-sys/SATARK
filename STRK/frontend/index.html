@@ -3,801 +3,1307 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SATARK - Crime Prediction & Analysis</title>
+  <title>SATARK — Crime Prediction & Analysis | MHA</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Leaflet CSS & JS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    crossorigin=""
-  ></script>
-
-  <!-- Leaflet MarkerCluster CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@400;600;700&display=swap');
 
-    :root{
-      --primary-glow:#490613;
-      --secondary-glow:#ff00c1;
-      --bg-color:#0d0c22;
-      --container-bg: rgba(23,22,53,0.85);
-      --border-color: rgba(0,246,255,0.12);
-      --muted:#9fb9c1;
+    :root {
+      --navy:      #1a2c6b;
+      --navy-dark: #0f1d4a;
+      --navy-mid:  #1e3a8a;
+      --accent:    #c0392b;
+      --gold:      #b8860b;
+      --bg:        #f0f2f5;
+      --surface:   #ffffff;
+      --surface2:  #f7f8fb;
+      --border:    #d1d9e6;
+      --text:      #1a2340;
+      --muted:     #5a6a8a;
+      --success:   #1a6b3c;
+      --warning:   #b45309;
     }
 
-    html,body{
-      height:100%;
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body { height: 100%; margin: 0; }
+
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.55;
     }
 
-    body{
-      font-family:'Roboto',sans-serif;
-      background: radial-gradient(ellipse at top right, rgba(73,6,19,0.12), transparent 25%), var(--bg-color);
-      color:#e6eef0;
-      margin:0;
-      min-height:100vh;
+    /* ── GOVT TOP RIBBON ── */
+    .govt-ribbon {
+      background: var(--navy-dark);
+      color: #c5d2f0;
+      font-size: 11px;
+      padding: 5px 0;
+      letter-spacing: 0.03em;
+      border-bottom: 2px solid var(--gold);
     }
-
-    .font-orbitron{ font-family:'Orbitron',sans-serif; letter-spacing:0.06em; }
-
-    /* Data boxes (glow + hover) */
-    .data-box{
-      background-color:var(--container-bg);
-      border:1px solid var(--border-color);
-      border-radius:1rem;
-      box-shadow:0 8px 40px rgba(0,0,0,0.6);
-      transition: transform 220ms cubic-bezier(.2,.9,.3,1), box-shadow 220ms, border-color 220ms;
-      position:relative;
-      overflow:hidden;
+    .govt-ribbon a { color: #c5d2f0; text-decoration: none; }
+    .emergency-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: #fff;
+      padding: 2px 10px; border-radius: 3px;
+      font-weight: 700; font-size: 11px; letter-spacing: 0.04em;
     }
-    .data-box:hover{
-      transform: translateY(-8px);
-      border-color: rgba(255,0,193,0.6);
-      box-shadow: 0 20px 60px rgba(255,0,193,0.06), 0 6px 30px rgba(0,0,0,0.6);
-    }
-    .data-box .header {
-      display:flex; align-items:center; justify-content:space-between;
-      gap:1rem;
-    }
-    .glow { text-shadow: 0 0 10px var(--primary-glow); color: #f5eef6; }
+    .emergency-badge::before { content: '●'; font-size: 9px; }
 
-    /* map container */
-    #map{ height:420px; min-height:320px; border-radius:0.75rem; overflow:hidden; }
-
-    .leaflet-container{ background:transparent; }
-
-    /* quick stat cards */
-    .stat-card { padding:1rem; border-radius:0.6rem; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.1)); }
-
-    /* hover glowing image boxes for crime types */
-    .crime-image-container {
-      position:relative;
-      border-radius:0.75rem;
-      overflow:hidden;
-      transition: transform 300ms ease, box-shadow 300ms ease;
-      border:1px solid rgba(255,255,255,0.03);
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
+    /* ── MAIN HEADER ── */
+    .site-header {
+      background: var(--surface);
+      border-bottom: 3px solid var(--navy);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .crime-image-container:hover {
-      transform: translateY(-6px) scale(1.01);
-      box-shadow: 0 10px 40px rgba(255,0,193,0.08);
-      border-color: var(--secondary-glow);
+    .header-inner {
+      max-width: 1400px; margin: 0 auto;
+      padding: 12px 24px;
+      display: flex; align-items: center; gap: 20px;
     }
-    .crime-image {
-      display:block; width:100%; height:160px; object-fit:cover; transform-origin:center center; transition: transform 300ms ease;
-    }
-    .crime-image-container:hover .crime-image { transform: scale(1.08); }
-    .crime-overlay {
-      position:absolute; left:0; right:0; bottom:0;
-      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 65%);
-      color:#fff; padding:0.75rem 0.9rem; transform: translateY(100%); transition: transform 260ms ease;
-    }
-    .crime-image-container:hover .crime-overlay { transform: translateY(0%); }
-
-    /* bigger layout (increase size & spacing) */
-    .container {
-      max-width:1400px;
-      padding-left:28px;
-      padding-right:28px;
-    }
-
-    /* tables */
-    table { border-collapse:collapse; width:100%; }
-    table td, table th { padding:8px 10px; }
-
-    /* custom cursor */
-    .custom-cursor { cursor:none; }
-    .cursor {
-      width: 34px;
-      height: 34px;
-      border: 2px solid var(--secondary-glow);
+    .logo-emblem {
+      width: 56px; height: 56px;
+      background: var(--navy);
       border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      transform: translate(-50%,-50%);
-      transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.12s ease;
-      z-index: 99999;
-      mix-blend-mode: screen;
-      box-shadow: 0 0 16px rgba(255,0,193,0.22);
-      background: rgba(255,255,255,0.02);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 2px solid var(--gold);
     }
-    .cursor-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--primary-glow);
-      border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      transform: translate(-50%,-50%);
-      z-index: 99999;
+    .logo-emblem svg { width: 32px; height: 32px; fill: #fff; }
+    .site-title { flex: 1; }
+    .site-title h1 {
+      font-family: 'Noto Serif', serif;
+      font-size: 22px; font-weight: 700;
+      color: var(--navy); margin: 0; line-height: 1.2;
+      letter-spacing: 0.01em;
     }
-    .cursor.active { transform: translate(-50%,-50%) scale(0.6); background: rgba(255,0,193,0.16); }
-
-    /* small responsive tweaks */
-    @media (max-width: 900px){
-      #map{ min-height:260px; height:260px; }
-      .crime-image { height:120px; }
+    .site-title .subtitle {
+      font-size: 11px; color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase; margin-top: 2px;
+    }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .lang-select {
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 10px; font-size: 12px; color: var(--text);
+      background: var(--surface); cursor: pointer;
+      font-family: 'Noto Sans', sans-serif;
     }
 
-    /* subtle thin scrollbars */
-    ::-webkit-scrollbar { height:7px; width:7px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius:99px; }
+    /* ── NAV BAR ── */
+    .site-nav {
+      background: var(--navy);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 0;
+    }
+    .nav-inner a {
+      display: inline-block;
+      color: #c5d2f0; text-decoration: none;
+      font-size: 12.5px; font-weight: 500;
+      padding: 10px 18px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      transition: background 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .nav-inner a:hover, .nav-inner a.active {
+      background: rgba(255,255,255,0.1); color: #fff;
+    }
+    .nav-inner a.active { border-bottom: 3px solid var(--gold); }
+
+    /* ── PAGE SHELL ── */
+    .page-wrap { max-width: 1400px; margin: 0 auto; padding: 20px 24px 40px; }
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb {
+      font-size: 11.5px; color: var(--muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .breadcrumb span { color: var(--navy); font-weight: 600; }
+
+    /* ── SECTION HEADING ── */
+    .section-heading {
+      font-family: 'Noto Serif', serif;
+      font-size: 15px; font-weight: 700;
+      color: var(--navy);
+      padding: 10px 14px;
+      background: var(--surface);
+      border-left: 4px solid var(--navy);
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-heading .badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 2px 8px; border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .badge-live { background: #dcfce7; color: var(--success); border: 1px solid #bbf7d0; }
+    .badge-info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-warn { background: #fef3c7; color: var(--warning); border: 1px solid #fde68a; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      border-radius: 6px 6px 0 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title {
+      font-size: 12.5px; font-weight: 700; color: var(--navy);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .card-body { padding: 14px; }
+
+    /* ── STAT TILES ── */
+    .stat-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      border-top: 3px solid var(--navy);
+    }
+    .stat-tile.accent-red   { border-top-color: var(--accent); }
+    .stat-tile.accent-gold  { border-top-color: var(--gold); }
+    .stat-tile.accent-green { border-top-color: var(--success); }
+    .stat-tile-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+    .stat-tile-value { font-size: 22px; font-weight: 700; color: var(--navy); font-family: 'Noto Serif', serif; }
+    .stat-tile-value.danger  { color: var(--accent); }
+    .stat-tile-value.warning { color: var(--warning); }
+    .stat-tile-value.success { color: var(--success); }
+    .stat-tile-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* ── THREAT PILL ── */
+    .threat-pill {
+      display: inline-block; padding: 3px 12px; border-radius: 3px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .threat-CRITICAL { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .threat-HIGH     { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .threat-MODERATE { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .threat-LOW      { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+    /* ── MAP ── */
+    #map { height: 380px; border-radius: 4px; border: 1px solid var(--border); }
+    .leaflet-container { background: #e8edf5; }
+
+    /* ── FILTERS ── */
+    .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 12px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+    .filter-group { display: flex; flex-direction: column; gap: 3px; }
+    .filter-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .filter-select, .filter-input {
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 6px 10px; font-size: 12.5px; color: var(--text);
+      background: var(--surface); font-family: 'Noto Sans', sans-serif;
+      min-width: 160px;
+    }
+    .filter-select:focus, .filter-input:focus { outline: 2px solid var(--navy); outline-offset: 1px; }
+    .btn-primary {
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 4px;
+      padding: 7px 18px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans', sans-serif;
+      letter-spacing: 0.02em;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--navy-dark); }
+    .btn-secondary {
+      background: var(--surface); color: var(--navy);
+      border: 1px solid var(--navy); border-radius: 4px;
+      padding: 7px 18px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans', sans-serif;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { background: var(--navy); color: #fff; }
+
+    /* ── TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .data-table thead tr { background: var(--navy); color: #fff; }
+    .data-table th { padding: 8px 12px; text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+    .data-table tbody tr:nth-child(even) { background: var(--surface2); }
+    .data-table tbody tr:hover { background: #e8edf7; }
+    .data-table .cat-badge {
+      display: inline-block; padding: 1px 8px; border-radius: 3px;
+      font-size: 10.5px; font-weight: 600;
+      background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe;
+    }
+
+    /* ── CHART CONTAINERS ── */
+    .chart-wrap { position: relative; }
+
+    /* ── CRIME IMAGE BOXES ── */
+    .crime-img-box {
+      border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+      background: var(--surface);
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .crime-img-box:hover { box-shadow: 0 4px 16px rgba(26,44,107,0.12); border-color: var(--navy); }
+    .crime-img-box img { display: block; width: 100%; height: 130px; object-fit: cover; }
+    .crime-img-caption {
+      padding: 8px 10px;
+      background: var(--navy); color: #fff;
+      font-size: 11.5px; font-weight: 600;
+    }
+    .crime-img-stat { padding: 6px 10px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
+
+    /* ── ANALYSIS LIST ── */
+    .analysis-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .analysis-row:last-child { border-bottom: none; }
+    .analysis-bar-wrap { flex: 1; margin: 0 10px; height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .analysis-bar { height: 100%; background: var(--navy); border-radius: 99px; transition: width 0.5s ease; }
+    .analysis-bar.red { background: var(--accent); }
+
+    /* ── PREDICTION PANEL ── */
+    .prediction-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .prediction-row:last-child { border-bottom: none; }
+    .pred-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      background: var(--navy-dark);
+      color: #8fa4c8;
+      font-size: 11px;
+      padding: 14px 24px;
+      text-align: center;
+      border-top: 3px solid var(--navy);
+      letter-spacing: 0.03em;
+    }
+
+    /* ── REPORT MODAL ── */
+    #report-modal {
+      display: none; position: fixed; inset: 0; z-index: 10000;
+      background: rgba(10,15,40,0.65);
+      backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #report-modal.visible { display: flex; }
+    #report-modal-inner {
+      width: 100%; max-width: 900px; max-height: 92vh; overflow-y: auto;
+      background: var(--surface); border-radius: 6px;
+      border: 2px solid var(--navy);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      display: flex; flex-direction: column;
+    }
+    .report-modal-header {
+      background: var(--navy); color: #fff;
+      padding: 14px 20px; border-radius: 4px 4px 0 0;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .report-modal-header h2 { margin: 0; font-size: 15px; font-family: 'Noto Serif', serif; font-weight: 700; letter-spacing: 0.02em; }
+    .report-modal-actions {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0;
+      background: var(--surface2);
+    }
+
+    /* ── PRINTABLE REPORT ── */
+    #printable-report {
+      padding: 36px 44px;
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 12.5px; line-height: 1.65; color: var(--text);
+    }
+    .rpt-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding-bottom: 18px; margin-bottom: 24px;
+      border-bottom: 3px solid var(--navy);
+    }
+    .rpt-logo-block { display: flex; align-items: center; gap: 14px; }
+    .rpt-emblem {
+      width: 52px; height: 52px; background: var(--navy); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--gold);
+    }
+    .rpt-emblem svg { width: 28px; height: 28px; fill: #fff; }
+    .rpt-title { font-family: 'Noto Serif', serif; font-size: 20px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+    .rpt-subtitle { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px; }
+    .rpt-meta { text-align: right; font-size: 11px; color: var(--muted); line-height: 1.8; }
+    .rpt-meta strong { color: var(--text); }
+    .rpt-classified {
+      display: inline-block; padding: 2px 10px; border-radius: 3px;
+      background: #fee2e2; color: var(--accent); border: 1px solid #fecaca;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .rpt-section { margin-bottom: 28px; }
+    .rpt-section-title {
+      font-family: 'Noto Serif', serif; font-size: 13px; font-weight: 700;
+      color: var(--navy); text-transform: uppercase; letter-spacing: 0.07em;
+      border-bottom: 2px solid var(--navy); padding-bottom: 5px; margin-bottom: 14px;
+    }
+    .rpt-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .rpt-grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+    .rpt-card {
+      border: 1px solid var(--border); border-radius: 5px; padding: 12px 14px;
+      border-top: 3px solid var(--navy);
+    }
+    .rpt-card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+    .rpt-card-value { font-size: 18px; font-weight: 700; color: var(--navy); font-family: 'Noto Serif', serif; }
+    .rpt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .rpt-table thead tr { background: var(--navy); color: #fff; }
+    .rpt-table th { padding: 7px 10px; text-align: left; font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .rpt-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    .rpt-table tbody tr:nth-child(even) { background: #f7f8fb; }
+    .rpt-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+    .rpt-bar-label { width: 100px; font-size: 11px; color: var(--text); text-align: right; flex-shrink: 0; }
+    .rpt-bar-track { flex: 1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .rpt-bar-fill { height: 100%; background: var(--navy); border-radius: 99px; transition: width 0.5s; }
+    .rpt-bar-fill.red { background: var(--accent); }
+    .rpt-bar-count { width: 38px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
+    .rpt-footer {
+      margin-top: 32px; padding-top: 14px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── DOWNLOAD REPORT BUTTON ── */
+    #download-report-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 4px;
+      padding: 9px 20px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans', sans-serif;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(26,44,107,0.2);
+    }
+    #download-report-btn:hover { background: var(--navy-dark); box-shadow: 0 4px 12px rgba(26,44,107,0.3); }
+
+    /* ── MISC ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .text-muted { color: var(--muted); }
+    .info-notice {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px;
+      padding: 10px 12px; font-size: 11.5px; color: #78350f;
+    }
+    .info-notice .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    @media (max-width: 900px) {
+      #map { height: 260px; }
+      .rpt-grid-3, .rpt-grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body * { visibility: hidden !important; }
+      #printable-report, #printable-report * { visibility: visible !important; }
+      #printable-report {
+        position: absolute; left: 0; top: 0; width: 100%;
+        padding: 24px 32px;
+      }
+    }
   </style>
 </head>
-<body id="main-bg" class="bg-no-repeat bg-cover">
+<body>
 
-  <!-- Custom cursor elements -->
-  <div id="custom-cursor" class="cursor" aria-hidden="true"></div>
-  <div id="custom-cursor-dot" class="cursor-dot" aria-hidden="true"></div>
+<!-- ══ GOVT RIBBON ══ -->
+<div class="govt-ribbon">
+  <div style="max-width:1400px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+    <div>
+      Government of India &nbsp;|&nbsp; Ministry of Home Affairs &nbsp;|&nbsp;
+      <a href="#">National Crime Records Bureau (NCRB)</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span>हिंदी</span>
+      <select class="lang-select" style="padding:2px 6px;font-size:10px;background:#1a2c6b;color:#c5d2f0;border:1px solid rgba(255,255,255,0.15);border-radius:3px;">
+        <option>English</option><option>हिंदी</option>
+      </select>
+      <span class="emergency-badge">EMERGENCY: 1070 / 1077</span>
+    </div>
+  </div>
+</div>
 
-  <!-- Modal -->
-  <div id="modal" class="hidden fixed inset-0 z-50 items-center justify-center" style="display:none;">
-    <div class="data-box p-6 w-full max-w-2xl">
-      <div class="flex justify-between items-center mb-3">
-        <h2 id="modal-title" class="font-orbitron text-2xl glow">Details</h2>
-        <button onclick="hideModal()" class="text-sm text-gray-300">Close</button>
-      </div>
-      <div id="modal-body" class="whitespace-pre-wrap text-sm text-gray-300 mb-3"></div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <canvas id="modal-pie" width="300" height="220"></canvas>
-        <canvas id="modal-line" width="300" height="220"></canvas>
-      </div>
-      <div class="mt-4"><button onclick="hideModal()" class="w-full py-2 rounded bg-gradient-to-r from-pink-500 to-purple-500 font-bold">Close</button></div>
+<!-- ══ SITE HEADER ══ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo-emblem" aria-hidden="true">
+      <!-- Ashoka Chakra-style SVG -->
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#fff" stroke-width="4"/>
+        <circle cx="50" cy="50" r="6" fill="#fff"/>
+        <line x1="50" y1="8" x2="50" y2="26" stroke="#fff" stroke-width="2"/>
+        <line x1="50" y1="74" x2="50" y2="92" stroke="#fff" stroke-width="2"/>
+        <line x1="8" y1="50" x2="26" y2="50" stroke="#fff" stroke-width="2"/>
+        <line x1="74" y1="50" x2="92" y2="50" stroke="#fff" stroke-width="2"/>
+        <line x1="21" y1="21" x2="33" y2="33" stroke="#fff" stroke-width="2"/>
+        <line x1="67" y1="67" x2="79" y2="79" stroke="#fff" stroke-width="2"/>
+        <line x1="79" y1="21" x2="67" y2="33" stroke="#fff" stroke-width="2"/>
+        <line x1="21" y1="79" x2="33" y2="67" stroke="#fff" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="site-title">
+      <h1>SATARK</h1>
+      <div class="subtitle">Sentient Analytical Tool for Advanced Risk Kinesis &nbsp;|&nbsp; Crime Prediction &amp; Hotspot Mapping System</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:var(--muted);">Ministry of Home Affairs</div>
+      <div style="font-size:11px;color:var(--muted);">Government of India</div>
+      <div style="font-size:10.5px;color:var(--success);font-weight:600;margin-top:2px;">● System Operational</div>
+    </div>
+  </div>
+</header>
+
+<!-- ══ NAV ══ -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Crime Map</a>
+    <a href="#">Hotspot Analysis</a>
+    <a href="#">Predictive Intelligence</a>
+    <a href="#">State Reports</a>
+    <a href="#">Data Management</a>
+    <a href="#" style="margin-left:auto;border-left:1px solid rgba(255,255,255,0.07)">Help</a>
+  </div>
+</nav>
+
+<!-- ══ REPORT MODAL ══ -->
+<div id="report-modal" role="dialog" aria-modal="true">
+  <div id="report-modal-inner">
+    <div class="report-modal-header">
+      <h2>📄 &nbsp;SATARK Intelligence Report</h2>
+      <button onclick="closeReportModal()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px;">✕ Close</button>
+    </div>
+    <div id="printable-report"></div>
+    <div class="report-modal-actions">
+      <button class="btn-secondary" onclick="closeReportModal()">Close</button>
+      <button class="btn-primary" onclick="window.print()">⎙ &nbsp;Print / Save as PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ORIGINAL DETAILS MODAL ══ -->
+<div id="modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(10,15,40,0.6);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:6px;border:1px solid var(--border);padding:24px;max-width:680px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.25);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 style="font-family:'Noto Serif',serif;font-size:16px;font-weight:700;color:var(--navy);margin:0;">Event Details</h2>
+      <button onclick="hideModal()" class="btn-secondary" style="padding:4px 12px;">Close</button>
+    </div>
+    <div id="modal-body" style="white-space:pre-wrap;font-size:12px;color:var(--muted);margin-bottom:14px;background:var(--surface2);padding:10px;border-radius:4px;border:1px solid var(--border);max-height:160px;overflow-y:auto;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <canvas id="modal-pie" width="300" height="200"></canvas>
+      <canvas id="modal-line" width="300" height="200"></canvas>
+    </div>
+    <div style="margin-top:14px;"><button onclick="hideModal()" class="btn-primary" style="width:100%;">Close</button></div>
+  </div>
+</div>
+
+<!-- ══ PAGE CONTENT ══ -->
+<div class="page-wrap">
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    Home &rsaquo; <span>Crime Analytics Dashboard</span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+      <button id="download-report-btn" onclick="openReportModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Report
+      </button>
+      <span style="font-size:11px;color:var(--muted);" id="last-updated-label">Last updated: —</span>
+    </span>
+  </div>
+
+  <!-- SECURITY NOTICE -->
+  <div class="info-notice" style="margin-bottom:16px;">
+    <span class="icon">🔒</span>
+    <div><strong>Official Use Only:</strong> All activity on this portal is logged and monitored. Unauthorised access or misuse is punishable under the Information Technology Act, 2000 and Indian Penal Code. Report anomalies to <strong>satark-helpdesk@mha.gov.in</strong></div>
+  </div>
+
+  <!-- TOP STAT TILES -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px;">
+    <div class="stat-tile accent-red">
+      <div class="stat-tile-label">Threat Level</div>
+      <div class="stat-tile-value danger" id="threat-level">—</div>
+      <div class="stat-tile-sub">Current assessment</div>
+    </div>
+    <div class="stat-tile accent-gold">
+      <div class="stat-tile-label">Top Crime Category</div>
+      <div class="stat-tile-value" id="top-crime" style="font-size:15px;margin-top:4px;">—</div>
+      <div class="stat-tile-sub">By incident count</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-label">Peak Day</div>
+      <div class="stat-tile-value" id="peak-day">—</div>
+      <div class="stat-tile-sub">Highest activity</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-label">Peak Hour</div>
+      <div class="stat-tile-value" id="peak-hour">—</div>
+      <div class="stat-tile-sub">24-hr format</div>
+    </div>
+    <div class="stat-tile accent-green">
+      <div class="stat-tile-label">Primary Hotspot</div>
+      <div class="stat-tile-value success" id="hotspot-area" style="font-size:14px;margin-top:4px;">—</div>
+      <div class="stat-tile-sub">Lat / Lon</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-label">Peak Time</div>
+      <div class="stat-tile-value" id="peak-time">—</div>
+      <div class="stat-tile-sub">Predicted window</div>
     </div>
   </div>
 
-  <div class="container mx-auto py-8">
-    <header class="text-center mb-6">
-      <h1 class="text-5xl md:text-6xl font-orbitron glow">S A T A R K</h1>
-      <p class="text-gray-400 mt-1">Sentient Analytical Tool for Advanced Risk Kinesis</p>
-    </header>
+  <!-- MAIN GRID -->
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;align-items:start;">
 
-    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- left column -->
-      <div class="lg:col-span-1 flex flex-col gap-6">
-        <div class="data-box p-4 h-[50vh] md:h-[70vh]">
-          <div class="header mb-2">
-            <h2 class="font-orbitron text-lg glow">Operational Area</h2>
-            <div style="font-size:12px;color:var(--muted)">Live</div>
-          </div>
+    <!-- LEFT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- MAP CARD -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Operational Area Map</span>
+          <span class="badge badge-live">● Live</span>
+        </div>
+        <div class="card-body" style="padding:10px;">
           <div id="map"></div>
         </div>
+      </div>
 
-        <div class="data-box p-4">
-          <h3 class="font-orbitron text-lg mb-3 glow">Filters & Controls</h3>
-          <label class="text-sm text-gray-300 block mb-2">Crime Type</label>
-          <select id="crime-type-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
-            <option value="All">All</option>
-            <option value="Theft">Theft</option>
-            <option value="Assault">Assault</option>
-            <option value="Burglary">Burglary</option>
-            <option value="Robbery">Robbery</option>
-            <option value="Fraud">Fraud</option>
-            <option value="Vandalism">Vandalism</option>
-            <option value="Kidnapping">Kidnapping</option>
-          </select>
-
-          <label class="text-sm text-gray-300 block mb-2">State</label>
-          <select id="state-filter" class="w-full p-2 bg-gray-900 rounded mb-3 text-white">
-            <option value="">All States</option>
-            <option value="Andhra Pradesh">Andhra Pradesh</option>
-            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-            <option value="Assam">Assam</option>
-            <option value="Bihar">Bihar</option>
-            <option value="Chhattisgarh">Chhattisgarh</option>
-            <option value="Goa">Goa</option>
-            <option value="Gujarat">Gujarat</option>
-            <option value="Haryana">Haryana</option>
-            <option value="Himachal Pradesh">Himachal Pradesh</option>
-            <option value="Jharkhand">Jharkhand</option>
-            <option value="Karnataka">Karnataka</option>
-            <option value="Kerala">Kerala</option>
-            <option value="Madhya Pradesh">Madhya Pradesh</option>
-            <option value="Maharashtra">Maharashtra</option>
-            <option value="Manipur">Manipur</option>
-            <option value="Meghalaya">Meghalaya</option>
-            <option value="Mizoram">Mizoram</option>
-            <option value="Nagaland">Nagaland</option>
-            <option value="Odisha">Odisha</option>
-            <option value="Punjab">Punjab</option>
-            <option value="Rajasthan">Rajasthan</option>
-            <option value="Sikkim">Sikkim</option>
-            <option value="Tamil Nadu">Tamil Nadu</option>
-            <option value="Telangana">Telangana</option>
-            <option value="Tripura">Tripura</option>
-            <option value="Uttar Pradesh">Uttar Pradesh</option>
-            <option value="Uttarakhand">Uttarakhand</option>
-            <option value="West Bengal">West Bengal</option>
-            <option value="Delhi">Delhi</option>
-          </select>
-
-          <button id="refresh-btn" class="w-full py-2 bg-cyan-500 rounded font-bold">Refresh Data</button>
+      <!-- FILTERS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Filters &amp; Controls</span>
+          <span class="badge badge-info">Advanced</span>
         </div>
-
-        <div class="data-box p-4">
-          <h3 class="font-orbitron text-lg mb-2 glow">Quick Stats</h3>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 data-box rounded text-center">
-              <div class="text-xs text-gray-300">Peak Day</div>
-              <div id="peak-day" class="font-bold text-lg">--</div>
-            </div>
-            <div class="p-3 data-box rounded text-center">
-              <div class="text-xs text-gray-300">Peak Hour</div>
-              <div id="peak-hour" class="font-bold text-lg">--</div>
-            </div>
-            <div class="p-3 data-box rounded text-center col-span-2">
-              <div class="text-xs text-gray-300">Top Crime</div>
-              <div id="top-crime" class="font-bold text-lg">--</div>
-            </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label">Crime Type</label>
+            <select id="crime-type-filter" class="filter-select">
+              <option value="All">All Types</option>
+              <option value="Theft">Theft</option>
+              <option value="Assault">Assault</option>
+              <option value="Burglary">Burglary</option>
+              <option value="Robbery">Robbery</option>
+              <option value="Fraud">Fraud</option>
+              <option value="Vandalism">Vandalism</option>
+              <option value="Kidnapping">Kidnapping</option>
+            </select>
           </div>
-        </div>
-        <!-- Top 3 offenders (floating alternative kept minimal for now) -->
-        <div class="data-box p-3">
-          <h4 class="font-orbitron text-sm glow">Top 3 Offenders / Cities</h4>
-          <ol id="top3-list" class="mt-2 text-sm space-y-1 text-gray-200"></ol>
+          <div class="filter-group">
+            <label class="filter-label">State / UT</label>
+            <select id="state-filter" class="filter-select">
+              <option value="">All States</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+              <option value="Assam">Assam</option>
+              <option value="Bihar">Bihar</option>
+              <option value="Chhattisgarh">Chhattisgarh</option>
+              <option value="Goa">Goa</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Haryana">Haryana</option>
+              <option value="Himachal Pradesh">Himachal Pradesh</option>
+              <option value="Jharkhand">Jharkhand</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Kerala">Kerala</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Manipur">Manipur</option>
+              <option value="Meghalaya">Meghalaya</option>
+              <option value="Mizoram">Mizoram</option>
+              <option value="Nagaland">Nagaland</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Punjab">Punjab</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Sikkim">Sikkim</option>
+              <option value="Tamil Nadu">Tamil Nadu</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Tripura">Tripura</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="Uttarakhand">Uttarakhand</option>
+              <option value="West Bengal">West Bengal</option>
+              <option value="Delhi">Delhi</option>
+            </select>
+          </div>
+          <button id="refresh-btn" class="btn-primary">↻ Refresh</button>
         </div>
       </div>
 
-      <!-- right column (wider) -->
-      <div class="lg:col-span-2 flex flex-col gap-6">
-        <div class="data-box p-4">
-          <div class="header mb-3">
-            <h3 class="font-orbitron text-xl glow">Dashboard</h3>
-            <div style="font-size:12px;color:var(--muted)">Interactive Insights</div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="p-4 stat-card text-center">
-              <div class="text-xs text-gray-300">Threat Level</div>
-              <div id="threat-level" class="font-orbitron text-3xl mt-2">--</div>
-            </div>
-            <div class="p-4 stat-card text-center">
-              <div class="text-xs text-gray-300">Predicted Hotspot</div>
-              <div id="hotspot-area" class="font-bold mt-2">--</div>
-            </div>
-            <div class="p-4 stat-card text-center">
-              <div class="text-xs text-gray-300">Peak Time</div>
-              <div id="peak-time" class="font-bold mt-2">--</div>
-            </div>
-          </div>
-
-          <!-- big row: state-wise charts -->
-          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="data-box p-4">
-              <div class="header mb-2">
-                <h4 class="font-orbitron text-lg glow">State Crime Trend</h4>
-                <div style="font-size:12px;color:var(--muted)" id="trend-subtitle">Select a state to view details</div>
-              </div>
-              <div class="chart-container mt-3">
-                <canvas id="stateTrendChart" height="160"></canvas>
-              </div>
-            </div>
-
-            <div class="data-box p-4">
-              <div class="header mb-2">
-                <h4 class="font-orbitron text-lg glow">State Crime Distribution</h4>
-                <div style="font-size:12px;color:var(--muted)">Top categories</div>
-              </div>
-              <div class="chart-container mt-3">
-                <canvas id="stateDistributionChart" height="160"></canvas>
-              </div>
-            </div>
-          </div>
+      <!-- QUICK ANALYSIS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Temporal Analysis</span>
+          <span class="badge badge-info">Top 5</span>
         </div>
-
-        <!-- analysis and image boxes -->
-        <div class="data-box p-4">
-          <h3 class="font-orbitron text-xl mb-2 glow">Analysis</h3>
-          <div class="flex flex-col md:flex-row gap-4">
-            <div class="flex-1">
-              <h4 class="text-sm text-gray-300">By Day (top 5)</h4>
-              <ul id="by-day" class="text-sm mt-2 space-y-1"></ul>
-            </div>
-            <div class="flex-1">
-              <h4 class="text-sm text-gray-300">By Hour (top 5)</h4>
-              <ul id="by-hour" class="text-sm mt-2 space-y-1"></ul>
-            </div>
-            <div class="w-72">
-              <h4 class="text-sm text-gray-300">Hotspots</h4>
-              <div id="hotspots-list" class="text-sm mt-2 space-y-1"></div>
-            </div>
-          </div>
-
-          <!-- crime images (glowing hover boxes) -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div class="crime-image-container p-0">
-              <img id="img-theft" class="crime-image" src="https://imgs.search.brave.com/vQsEQ7cRbT_hqG794EOnerlHKaHHbodqGiQGU64Z5-c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90aHVt/YnMuZHJlYW1zdGlt/ZS5jb20vYi90aGll/Zi10YWtpbmctbW9u/ZXktb3V0LXN0ZWVs/LXNhZmUtaW5kb29y/cy1uaWdodC1jbG9z/ZXVwLTE3MDk1OTYx/NS5qcGc" alt="Theft">
-              <div class="crime-overlay">
-                <h5 class="font-orbitron">Theft</h5>
-                <p id="theft-stats" class="text-sm text-gray-200">--</p>
-              </div>
-            </div>
-
-            <div class="crime-image-container p-0">
-              <img id="img-assault" class="crime-image" src="https://imgs.search.brave.com/iU1w0tkSB-qduFx4R2ZsemGraDlB89DuqXNPC5QwRdU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjE4/MTUxMzM0My9waG90/by9hYnN0cmFjdC1z/aWxob3VldHRlLmpw/Zz9zPTYxMng2MTIm/dz0wJms9MjAmYz1h/MXhpbjNjZzJhZ01y/OE9RZ282X2xyZjUt/cVlsaGhzRllHd0lR/Nm1LUGFzPQ" alt="Assault">
-              <div class="crime-overlay">
-                <h5 class="font-orbitron">Assault</h5>
-                <p id="assault-stats" class="text-sm text-gray-200">--</p>
-              </div>
-            </div>
-
-            <div class="crime-image-container p-0">
-              <img id="img-fraud" class="crime-image" src="https://imgs.search.brave.com/mGjUhmwddB9gKe8Hgkzq12fPeiLYfcTd5lpCuKyeVHo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzE2LzgyLzg5LzMy/LzM2MF9GXzE2ODI4/OTMyNDhfTkg3REJS/dXZqbTNST2xRN1Fl/dDVPSDR5eTE3ZVkz/eUMuanBn" alt="Fraud">
-              <div class="crime-overlay">
-                <h5 class="font-orbitron">Fraud</h5>
-                <p id="fraud-stats" class="text-sm text-gray-200">--</p>
-              </div>
-            </div>
-          </div>
+        <div class="card-body">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">By Day of Week</div>
+          <div id="by-day"></div>
+          <hr class="divider"/>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">By Hour of Day</div>
+          <div id="by-hour"></div>
         </div>
-
-        <div class="data-box p-4">
-          <h3 class="font-orbitron text-xl mb-2 glow">All Events (click marker for details)</h3>
-          <div class="overflow-y-auto max-h-56">
-            <table class="w-full text-left text-sm">
-              <thead class="text-gray-300">
-                <tr><th class="p-2">City</th><th class="p-2">Category</th><th class="p-2">State</th><th class="p-2">Timestamp</th></tr>
-              </thead>
-              <tbody id="events-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
-    </main>
-  </div>
 
+      <!-- TOP OFFENDERS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top Cities / Offenders</span>
+          <span class="badge badge-warn">Priority</span>
+        </div>
+        <div class="card-body">
+          <ol id="top3-list" style="margin:0;padding:0;list-style:none;"></ol>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- STATE TREND CHARTS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">State Crime Trend</span>
+            <span id="trend-subtitle" class="text-muted" style="font-size:11px;">Select state</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="stateTrendChart" height="170"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Category Distribution</span>
+            <span class="badge badge-info">State</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="stateDistributionChart" height="170"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREDICTIVE INTELLIGENCE -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Next Predicted Event</span>
+            <span class="badge badge-warn">AI</span>
+          </div>
+          <div class="card-body">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Predicted Category &amp; Location</div>
+            <div id="next-crime-text" style="font-size:14px;font-weight:700;color:var(--navy);">—</div>
+            <div id="next-crime-context" style="font-size:11.5px;color:var(--muted);margin-top:4px;"></div>
+            <hr class="divider"/>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Hotspot Zones</div>
+            <div id="hotspots-list" style="font-size:12px;"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Category Probability Forecast</span>
+            <span class="badge badge-warn">Predictive</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="predictionCategoryChart" height="140"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL TREND -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">National Crime Trend (Annual)</span>
+          <span class="badge badge-info">NCRB Data</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="globalTrendChart" height="140"></canvas></div>
+        </div>
+      </div>
+
+      <!-- CRIME TYPE OVERVIEW -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Crime Category Overview</span>
+          <span class="badge badge-info">3 Categories</span>
+        </div>
+        <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <div class="crime-img-box">
+            <img src="https://imgs.search.brave.com/vQsEQ7cRbT_hqG794EOnerlHKaHHbodqGiQGU64Z5-c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90aHVt/YnMuZHJlYW1zdGlt/ZS5jb20vYi90aGll/Zi10YWtpbmctbW9u/ZXktb3V0LXN0ZWVs/LXNhZmUtaW5kb29y/cy1uaWdodC1jbG9z/ZXVwLTE3MDk1OTYx/NS5qcGc" alt="Theft">
+            <div class="crime-img-caption">Theft / Burglary</div>
+            <div class="crime-img-stat" id="theft-stats">—</div>
+          </div>
+          <div class="crime-img-box">
+            <img src="https://imgs.search.brave.com/iU1w0tkSB-qduFx4R2ZsemGraDlB89DuqXNPC5QwRdU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjE4/MTUxMzM0My9waG90/by9hYnN0cmFjdC1z/aWxob3VldHRlLmpw/Zz9zPTYxMng2MTIm/dz0wJms9MjAmYz1h/MXhpbjNjZzJhZ01y/OE9RZ282X2xyZjUt/cVlsaGhzRllHd0lR/Nm1LUGFzPQ" alt="Assault">
+            <div class="crime-img-caption">Assault / Violent</div>
+            <div class="crime-img-stat" id="assault-stats">—</div>
+          </div>
+          <div class="crime-img-box">
+            <img src="https://imgs.search.brave.com/mGjUhmwddB9gKe8Hgkzq12fPeiLYfcTd5lpCuKyeVHo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzE2LzgyLzg5LzMy/LzM2MF9GXzE2ODI4/OTMyNDhfTkg3REJS/dXZqbTNST2xRN1Fl/dDVPSDR5eTE3ZVkz/eUMuanBn" alt="Fraud">
+            <div class="crime-img-caption">Fraud / Cybercrime</div>
+            <div class="crime-img-stat" id="fraud-stats">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTS TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Recorded Events</span>
+          <span class="badge badge-live" id="events-count-badge">Loading…</span>
+        </div>
+        <div style="overflow-y:auto;max-height:280px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th><th>City</th><th>Category</th><th>State / UT</th><th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
+        </div>
+        <!-- Pager appended by JS -->
+      </div>
+
+    </div>
+  </div><!-- /main grid -->
+</div><!-- /page-wrap -->
+
+<!-- ══ FOOTER ══ -->
+<footer class="site-footer">
+  <div>© 2025 SATARK – Ministry of Home Affairs, Government of India &nbsp;|&nbsp; DEVPAGLU &nbsp;|&nbsp; Developed at Deviathon, GLA Mathura &nbsp;|&nbsp; All data is for official use only.</div>
+  <div style="margin-top:4px;color:#6b82aa;">For technical support: satark-helpdesk@mha.gov.in &nbsp;|&nbsp; CERT-In Empanelled Platform</div>
+</footer>
+
+<!-- ══════════ SCRIPTS ══════════ -->
 <script>
-/* MAIN FRONTEND SCRIPT
-   - fetches /api/crimes, /api/analysis, /api/predict, /api/states
-   - renders map, events, analysis, state charts and images
-   - custom cursor and hover animations
-*/
-
 (function(){
-  // map
-  const map = L.map('map', { scrollWheelZoom:false }).setView([22.5937,78.9629], 5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  }).addTo(map);
 
-  // Use marker clustering for performance
+  // ── Map setup ──
+  const map = L.map('map', { scrollWheelZoom:false }).setView([22.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OSM' }).addTo(map);
   const crimesLayer = L.markerClusterGroup();
   map.addLayer(crimesLayer);
   const hotspotsLayer = L.layerGroup().addTo(map);
+  const predictionLayer = L.layerGroup().addTo(map);
 
-  // DOM refs
-  const eventsTbody = document.getElementById('events-tbody');
-  const byDayEl = document.getElementById('by-day');
-  const byHourEl = document.getElementById('by-hour');
-  const hotspotsList = document.getElementById('hotspots-list');
-  const peakDayEl = document.getElementById('peak-day');
-  const peakHourEl = document.getElementById('peak-hour');
-  const topCrimeEl = document.getElementById('top-crime');
-  const hotspotAreaEl = document.getElementById('hotspot-area');
-  const peakTimeEl = document.getElementById('peak-time');
-  const threatLevelEl = document.getElementById('threat-level');
-  const refreshBtn = document.getElementById('refresh-btn');
+  // ── DOM refs ──
+  const eventsTbody     = document.getElementById('events-tbody');
+  const byDayEl         = document.getElementById('by-day');
+  const byHourEl        = document.getElementById('by-hour');
+  const hotspotsList    = document.getElementById('hotspots-list');
+  const peakDayEl       = document.getElementById('peak-day');
+  const peakHourEl      = document.getElementById('peak-hour');
+  const topCrimeEl      = document.getElementById('top-crime');
+  const hotspotAreaEl   = document.getElementById('hotspot-area');
+  const peakTimeEl      = document.getElementById('peak-time');
+  const threatLevelEl   = document.getElementById('threat-level');
+  const refreshBtn      = document.getElementById('refresh-btn');
   const crimeTypeFilter = document.getElementById('crime-type-filter');
-  const stateFilter = document.getElementById('state-filter');
+  const stateFilter     = document.getElementById('state-filter');
+  const nextCrimeText   = document.getElementById('next-crime-text');
+  const nextCrimeCtx    = document.getElementById('next-crime-context');
+  const theftStats      = document.getElementById('theft-stats');
+  const assaultStats    = document.getElementById('assault-stats');
+  const fraudStats      = document.getElementById('fraud-stats');
+  const trendSubtitle   = document.getElementById('trend-subtitle');
+  const eventsCountBadge= document.getElementById('events-count-badge');
+  const lastUpdLabel    = document.getElementById('last-updated-label');
 
-  const theftStats = document.getElementById('theft-stats');
-  const assaultStats = document.getElementById('assault-stats');
-  const fraudStats = document.getElementById('fraud-stats');
+  // ── Charts ──
+  let stateTrendChart=null, stateDistributionChart=null,
+      predCatChart=null, globalTrendChart=null;
 
-  const trendSubtitle = document.getElementById('trend-subtitle');
+  // ── State ──
+  let currentEvents=[], currentAnalysis=null, currentPredict=null, statesData=null;
 
-  // charts
-  let stateTrendChart = null;
-  let stateDistributionChart = null;
+  // Chart default options
+  const chartDefaults = {
+    plugins: { legend:{ labels:{ color:'#1a2340', font:{ family:"'Noto Sans', sans-serif", size:11 } } } },
+    scales: {
+      x:{ ticks:{ color:'#5a6a8a', font:{ size:10 } }, grid:{ color:'rgba(0,0,0,0.06)' } },
+      y:{ ticks:{ color:'#5a6a8a', font:{ size:10 } }, grid:{ color:'rgba(0,0,0,0.06)' } }
+    }
+  };
 
-  let currentEvents = [];
-  let currentAnalysis = null;
-  let currentPredict = null;
-  let statesData = null;
+  function formatDate(iso){ try{ return new Date(iso).toLocaleString('en-IN'); }catch{ return iso; } }
 
-  // custom cursor
-  const cursor = document.getElementById('custom-cursor');
-  const cursorDot = document.getElementById('custom-cursor-dot');
-  document.body.classList.add('custom-cursor');
-  document.addEventListener('mousemove', e => {
-    cursor.style.left = e.clientX + 'px';
-    cursor.style.top = e.clientY + 'px';
-    cursorDot.style.left = e.clientX + 'px';
-    cursorDot.style.top = e.clientY + 'px';
-  });
-  document.addEventListener('mousedown', ()=> cursor.classList.add('active'));
-  document.addEventListener('mouseup', ()=> cursor.classList.remove('active'));
-
-  function formatDate(iso){ try{ return new Date(iso).toLocaleString(); }catch{ return iso; } }
-
-  // Filters events by selected crime type and/or state on client
   function applyFilter(events){
-    const type = crimeTypeFilter.value;
-    const state = stateFilter.value;
-    let out = events;
-    if(type && type!=='All'){
-      out = out.filter(f => f.properties.category && f.properties.category.toLowerCase()===type.toLowerCase());
-    }
-    if(state){
-      out = out.filter(f => f.properties.state && f.properties.state.toLowerCase()===state.toLowerCase());
-    }
+    const type=crimeTypeFilter.value, state=stateFilter.value;
+    let out=events;
+    if(type&&type!=='All') out=out.filter(f=>f.properties.category&&f.properties.category.toLowerCase()===type.toLowerCase());
+    if(state) out=out.filter(f=>f.properties.state&&f.properties.state.toLowerCase()===state.toLowerCase());
     return out;
   }
 
   function computeTopCrime(events){
     const count={};
-    for(const f of events){ const c=f.properties.category; count[c]=(count[c]||0)+1; }
-    const top = Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
-    return top? `${top[0]} (${top[1]})` : '--';
+    for(const f of events){ const c=f.properties.category||'Unknown'; count[c]=(count[c]||0)+1; }
+    const top=Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
+    return top?`${top[0]} (${top[1]})`:'—';
   }
 
-  // Pagination for events table
-  let eventsPerPage = 50;
-  let currentPage = 1;
+  // Events table with pagination
+  let eventsPerPage=50, currentPage=1;
   function renderEvents(events){
     eventsTbody.innerHTML='';
-    const filtered = applyFilter(events);
-    const totalPages = Math.max(1, Math.ceil(filtered.length / eventsPerPage));
-    if(currentPage > totalPages) currentPage = totalPages;
-    const start = (currentPage-1)*eventsPerPage;
-    const page = filtered.slice(start, start + eventsPerPage);
-    for(const f of page){
+    const filtered=applyFilter(events);
+    eventsCountBadge.textContent=`${filtered.length} records`;
+    const totalPages=Math.max(1,Math.ceil(filtered.length/eventsPerPage));
+    if(currentPage>totalPages) currentPage=totalPages;
+    const page=filtered.slice((currentPage-1)*eventsPerPage, currentPage*eventsPerPage);
+    page.forEach((f,i)=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = '<td class="p-2">' + (f.properties.city || '--') + '</td>' +
-                     '<td class="p-2">' + (f.properties.category || '--') + '</td>' +
-                     '<td class="p-2">' + (f.properties.state || '--') + '</td>' +
-                     '<td class="p-2">' + formatDate(f.properties.timestamp) + '</td>';
+      const rowNum=(currentPage-1)*eventsPerPage+i+1;
+      tr.innerHTML=`<td style="color:var(--muted);font-size:11px;">${rowNum}</td>
+        <td>${f.properties.city||'—'}</td>
+        <td><span class="cat-badge">${f.properties.category||'—'}</span></td>
+        <td>${f.properties.state||'—'}</td>
+        <td>${formatDate(f.properties.timestamp)}</td>`;
       eventsTbody.appendChild(tr);
-    }
-    // render simple pager
-    renderPager(totalPages);
+    });
+    renderPager(totalPages, filtered.length);
   }
 
-  const pagerContainer = document.createElement('div');
-  pagerContainer.className = 'flex gap-2 items-center mt-2';
-  function renderPager(totalPages){
-    pagerContainer.innerHTML = '';
-    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = currentPage<=1;
-    prev.className='px-2 py-1 bg-gray-800 rounded text-sm';
-    prev.addEventListener('click', ()=>{ currentPage--; renderEvents(currentEvents); });
-    const next = document.createElement('button'); next.textContent='Next'; next.disabled = currentPage>=totalPages;
-    next.className='px-2 py-1 bg-gray-800 rounded text-sm';
-    next.addEventListener('click', ()=>{ currentPage++; renderEvents(currentEvents); });
-    const info = document.createElement('div'); info.className='text-sm text-gray-300'; info.textContent = `Page ${currentPage} / ${totalPages}`;
-    pagerContainer.appendChild(prev); pagerContainer.appendChild(info); pagerContainer.appendChild(next);
-    // ensure pager appears below the table
-    const parent = eventsTbody.parentElement.parentElement; // table wrapper
-    if(!parent.querySelector('.pager')){
-      const pwrap = document.createElement('div'); pwrap.className='pager mt-2'; pwrap.appendChild(pagerContainer); parent.appendChild(pwrap);
+  let pagerDiv=null;
+  function renderPager(totalPages, total){
+    const tableParent=eventsTbody.parentElement.parentElement;
+    if(!pagerDiv){
+      pagerDiv=document.createElement('div');
+      pagerDiv.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border);background:var(--surface2);font-size:11.5px;color:var(--muted);';
+      tableParent.insertAdjacentElement('afterend',pagerDiv);
     }
+    pagerDiv.innerHTML=`
+      <span>Showing ${Math.min((currentPage-1)*eventsPerPage+1,total)}–${Math.min(currentPage*eventsPerPage,total)} of ${total} records</span>
+      <span style="display:flex;gap:6px;">
+        <button id="pg-prev" style="border:1px solid var(--border);background:${currentPage<=1?'#e2e8f0':'var(--surface)'};color:var(--text);border-radius:3px;padding:3px 10px;cursor:pointer;font-size:11px;" ${currentPage<=1?'disabled':''}>‹ Prev</button>
+        <span style="padding:3px 8px;background:var(--navy);color:#fff;border-radius:3px;font-size:11px;">Page ${currentPage} / ${totalPages}</span>
+        <button id="pg-next" style="border:1px solid var(--border);background:${currentPage>=totalPages?'#e2e8f0':'var(--surface)'};color:var(--text);border-radius:3px;padding:3px 10px;cursor:pointer;font-size:11px;" ${currentPage>=totalPages?'disabled':''}>Next ›</button>
+      </span>`;
+    document.getElementById('pg-prev').addEventListener('click',()=>{ currentPage--; renderEvents(currentEvents); });
+    document.getElementById('pg-next').addEventListener('click',()=>{ currentPage++; renderEvents(currentEvents); });
   }
 
   function renderMap(events){
     crimesLayer.clearLayers();
-    crimesLayer.clearLayers();
     for(const f of applyFilter(events)){
       const [lon,lat]=f.geometry.coordinates;
-      const marker = L.circleMarker([lat,lon],{radius:6,fillOpacity:0.9,color:'#ff00c1',weight:1});
-      const popupHtml = '<b>' + (f.properties.city||'') + '</b><br>' + (f.properties.category||'') + '<br>' + formatDate(f.properties.timestamp) + '<br><i>' + (f.properties.state||'') + '</i>';
-      marker.bindPopup(popupHtml);
-      // on click, fetch location summary and show modal charts
-      marker.on('click', async ()=>{
+      const marker=L.circleMarker([lat,lon],{radius:6,fillOpacity:0.85,color:'#1a2c6b',fillColor:'#1a2c6b',weight:1.5});
+      marker.bindPopup(`<b style="color:#1a2c6b;">${f.properties.city||''}</b><br><span style="color:#c0392b;font-weight:600;">${f.properties.category||''}</span><br>${formatDate(f.properties.timestamp)}<br><small>${f.properties.state||''}</small>`);
+      marker.on('click',async()=>{
         try{
-          const res = await fetch('/api/location_summary?lat=' + lat + '&lon=' + lon + '&radius_km=5');
-          if(res.ok){
-            const summary = await res.json();
-            showLocationModal(f, summary);
-          } else {
-            showLocationModal(f, null);
-          }
-        }catch(e){ console.warn('location_summary fetch failed', e); showLocationModal(f, null); }
+          const res=await fetch('/api/location_summary?lat='+lat+'&lon='+lon+'&radius_km=5');
+          showLocationModal(f, res.ok?await res.json():null);
+        }catch(e){ showLocationModal(f,null); }
       });
       crimesLayer.addLayer(marker);
     }
   }
 
-  // modal helpers
-  const modal = document.getElementById('modal');
-  const modalBody = document.getElementById('modal-body');
+  // Original detail modal
+  const modal=document.getElementById('modal');
+  const modalBody=document.getElementById('modal-body');
   let modalPie=null, modalLine=null;
-  function hideModal(){ modal.style.display='none'; modal.classList.add('hidden'); }
-  window.hideModal = hideModal;
+  function hideModal(){ modal.style.display='none'; }
+  window.hideModal=hideModal;
 
-  function showLocationModal(feature, summary){
-    modal.style.display='flex'; modal.classList.remove('hidden');
-    modalBody.textContent = JSON.stringify(feature.properties, null, 2);
-    // render pie & line from summary (or fallback)
-    const pieCtx = document.getElementById('modal-pie').getContext('2d');
-    const lineCtx = document.getElementById('modal-line').getContext('2d');
+  function showLocationModal(feature,summary){
+    modal.style.display='flex';
+    modalBody.textContent=JSON.stringify(feature.properties,null,2);
+    const pieCtx=document.getElementById('modal-pie').getContext('2d');
+    const lineCtx=document.getElementById('modal-line').getContext('2d');
     if(modalPie) modalPie.destroy(); if(modalLine) modalLine.destroy();
-    const dist = (summary && summary.distribution) || { [feature.properties.category]: 1 };
-    modalPie = new Chart(pieCtx, { type:'pie', data:{ labels:Object.keys(dist), datasets:[{ data:Object.values(dist), backgroundColor:Object.keys(dist).map((_,i)=>`hsl(${i*60},80%,60%)`) }] }, options:{ plugins:{ legend:{ labels:{ color:'#e6eef0' } } } } });
-    const ts = (summary && summary.time_series) || { [new Date().toISOString().slice(0,10)]: 1 };
-    const labels = Object.keys(ts).sort(); const data = labels.map(d=>ts[d]);
-    modalLine = new Chart(lineCtx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Events',
-            data: data,
-            borderColor: '#00f7ff',
-            backgroundColor: 'rgba(0,247,255,0.08)'
-          }
-        ]
-      },
-      options: {
-        scales: {
-          x: { ticks: { color: '#cbd5e1' } },
-          y: { ticks: { color: '#cbd5e1' } }
-        },
-        plugins: { legend: { labels: { color: '#e6eef0' } } }
-      }
-    });
+    const dist=(summary&&summary.distribution)||{[feature.properties.category]:1};
+    modalPie=new Chart(pieCtx,{type:'pie',data:{labels:Object.keys(dist),datasets:[{data:Object.values(dist),backgroundColor:['#1a2c6b','#c0392b','#b8860b','#1a6b3c','#2563eb','#7c3aed']}]},options:{plugins:{legend:{labels:{color:'#1a2340',font:{size:10}}}}}});
+    const ts=(summary&&summary.time_series)||{[new Date().toISOString().slice(0,10)]:1};
+    const labels=Object.keys(ts).sort();
+    modalLine=new Chart(lineCtx,{type:'line',data:{labels,datasets:[{label:'Events',data:labels.map(d=>ts[d]),borderColor:'#1a2c6b',backgroundColor:'rgba(26,44,107,0.08)',fill:true}]},options:{scales:{x:{ticks:{color:'#5a6a8a',font:{size:9}}},y:{ticks:{color:'#5a6a8a',font:{size:9}}}},plugins:{legend:{labels:{color:'#1a2340',font:{size:10}}}}}});
   }
 
   function renderAnalysis(a){
-    byDayEl.innerHTML = Object.entries(a.by_day || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>'<li>'+d+': <b>'+v+'</b></li>').join('');
-    byHourEl.innerHTML = Object.entries(a.by_hour || {}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([d,v])=>'<li>'+d+':00 → <b>'+v+'</b></li>').join('');
+    const byDay=Object.entries(a.by_day||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const byHour=Object.entries(a.by_hour||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const dayMax=byDay.length?byDay[0][1]:1;
+    const hourMax=byHour.length?byHour[0][1]:1;
+    byDayEl.innerHTML=byDay.map(([d,v])=>`
+      <div class="analysis-row">
+        <span style="width:80px;font-size:12px;">${d}</span>
+        <div class="analysis-bar-wrap"><div class="analysis-bar" style="width:${(v/dayMax*100).toFixed(1)}%"></div></div>
+        <span style="font-size:12px;font-weight:600;color:var(--navy);width:30px;text-align:right;">${v}</span>
+      </div>`).join('');
+    byHourEl.innerHTML=byHour.map(([h,v])=>`
+      <div class="analysis-row">
+        <span style="width:80px;font-size:12px;">${h}:00</span>
+        <div class="analysis-bar-wrap"><div class="analysis-bar red" style="width:${(v/hourMax*100).toFixed(1)}%"></div></div>
+        <span style="font-size:12px;font-weight:600;color:var(--accent);width:30px;text-align:right;">${v}</span>
+      </div>`).join('');
   }
 
   function renderHotspots(p){
-    hotspotsLayer.clearLayers(); hotspotsList.innerHTML='';
-    (p.hotspots||[]).forEach((h,i)=>{
-      const c=L.circle([h.latitude,h.longitude],{radius:Math.max(50,h.count*45),color:'#ff00c1',fillOpacity:0.08}).addTo(hotspotsLayer);
-      hotspotsList.innerHTML += '<div class="p-1 text-xs">#' + (i+1) + ' ' + h.latitude.toFixed(2) + ',' + h.longitude.toFixed(2) + ' — ' + h.count + ' pts</div>';
+    hotspotsLayer.clearLayers(); predictionLayer.clearLayers(); hotspotsList.innerHTML='';
+    (p.hotspots||[]).slice(0,4).forEach((h,i)=>{
+      L.circle([h.latitude,h.longitude],{radius:Math.max(500,h.count*80),color:'#c0392b',fillColor:'#c0392b',fillOpacity:0.07,weight:1.5}).addTo(hotspotsLayer);
+      hotspotsList.innerHTML+=`<div class="prediction-row">
+        <div class="pred-rank">${i+1}</div>
+        <div style="flex:1;font-size:12px;">${h.latitude.toFixed(3)}, ${h.longitude.toFixed(3)}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);">${h.count} pts</div>
+      </div>`;
     });
+    if(p.next_prediction&&p.next_prediction.latitude&&p.next_prediction.longitude){
+      L.marker([p.next_prediction.latitude,p.next_prediction.longitude]).bindPopup('Predicted: '+(p.next_prediction.category||'—')).addTo(predictionLayer);
+    }
   }
 
   function updateStats(){
-  topCrimeEl.textContent=computeTopCrime(currentEvents);
-  peakDayEl.textContent=currentPredict?currentPredict.peak_day:'--';
-  peakHourEl.textContent=(currentPredict?currentPredict.peak_hour:'--') + ":00";
-  hotspotAreaEl.textContent = (currentPredict && currentPredict.hotspots && currentPredict.hotspots[0]) ? (currentPredict.hotspots[0].latitude.toFixed(2) + ',' + currentPredict.hotspots[0].longitude.toFixed(2)) : '--';
-  peakTimeEl.textContent=(currentPredict?currentPredict.peak_hour:'--') + ":00";
-    const maxCnt = currentPredict && currentPredict.hotspots && currentPredict.hotspots.length ? Math.max(...currentPredict.hotspots.map(h=>h.count)) : 0;
-    threatLevelEl.textContent = maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
+    topCrimeEl.textContent=computeTopCrime(currentEvents);
+    const pd=currentPredict;
+    if(pd){
+      peakDayEl.textContent=pd.peak_day||'—';
+      peakHourEl.textContent=(pd.peak_hour!==undefined)?(pd.peak_hour+':00'):'—';
+      peakTimeEl.textContent=(pd.peak_hour!==undefined)?(pd.peak_hour+':00 hrs'):'—';
+      hotspotAreaEl.textContent=(pd.hotspots&&pd.hotspots[0])?(pd.hotspots[0].latitude.toFixed(3)+', '+pd.hotspots[0].longitude.toFixed(3)):'—';
+      const maxCnt=pd.hotspots&&pd.hotspots.length?Math.max(...pd.hotspots.map(h=>h.count)):0;
+      const lvl=maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
+      threatLevelEl.innerHTML=`<span class="threat-pill threat-${lvl}">${lvl}</span>`;
+    }
   }
 
-  // Charts init
   function initCharts(){
-    const trendCtx = document.getElementById('stateTrendChart').getContext('2d');
-    const distCtx = document.getElementById('stateDistributionChart').getContext('2d');
-    stateTrendChart = new Chart(trendCtx, {
+    stateTrendChart=new Chart(document.getElementById('stateTrendChart').getContext('2d'),{
       type:'line',
-      data: { labels: [], datasets: [{ label:'Incidents', data: [], borderColor: 'rgba(255,0,193,1)', backgroundColor:'rgba(255,0,193,0.08)', tension:0.3, fill:true }] },
-      options: { responsive:true, plugins:{legend:{display:false}}, scales:{x:{ ticks:{color:'#e6eef0'} }, y:{ ticks:{color:'#e6eef0'} }} }
+      data:{labels:[],datasets:[{label:'Incidents',data:[],borderColor:'#1a2c6b',backgroundColor:'rgba(26,44,107,0.08)',tension:0.3,fill:true,pointRadius:3}]},
+      options:{...chartDefaults,responsive:true,plugins:{legend:{display:false}}}
     });
-    stateDistributionChart = new Chart(distCtx, {
+    stateDistributionChart=new Chart(document.getElementById('stateDistributionChart').getContext('2d'),{
       type:'doughnut',
-      data:{ labels: [], datasets:[{ data: [], backgroundColor: ['rgba(255,0,193,0.6)','rgba(0,246,255,0.6)','rgba(75,192,192,0.6)','rgba(255,159,64,0.6)','rgba(153,102,255,0.6)'] }] },
-      options: { responsive:true, plugins:{legend:{position:'bottom', labels:{color:'#e6eef0'}}} }
+      data:{labels:[],datasets:[{data:[],backgroundColor:['#1a2c6b','#c0392b','#b8860b','#1a6b3c','#2563eb','#7c3aed','#0891b2','#ea580c']}]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#1a2340',font:{size:10}}}}}
+    });
+    predCatChart=new Chart(document.getElementById('predictionCategoryChart').getContext('2d'),{
+      type:'bar',
+      data:{labels:[],datasets:[{label:'Probability',data:[],backgroundColor:'rgba(26,44,107,0.75)',borderColor:'#1a2c6b',borderWidth:1}]},
+      options:{...chartDefaults,scales:{x:{ticks:{color:'#5a6a8a',font:{size:10}},grid:{color:'rgba(0,0,0,0.06)'}},y:{ticks:{color:'#5a6a8a',font:{size:10}},grid:{color:'rgba(0,0,0,0.06)'},beginAtZero:true,max:1}},plugins:{legend:{display:false}}}
+    });
+    globalTrendChart=new Chart(document.getElementById('globalTrendChart').getContext('2d'),{
+      type:'line',
+      data:{labels:[],datasets:[{label:'National Incidents',data:[],borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.07)',fill:true,tension:0.3,pointRadius:3}]},
+      options:{...chartDefaults,responsive:true}
     });
   }
 
-  // Update state charts and image stats
+  function renderPredictionUI(p){
+    if(!p) return;
+    if(p.next_prediction&&p.next_prediction.category){
+      const np=p.next_prediction;
+      nextCrimeText.textContent=`${np.category} @ (${np.latitude?np.latitude.toFixed(3):'?'}, ${np.longitude?np.longitude.toFixed(3):'?'})`;
+      if(np.context) nextCrimeCtx.textContent=`Context: ${np.context.day}, ${np.context.hour}:00 hrs`;
+    } else { nextCrimeText.textContent='—'; nextCrimeCtx.textContent=''; }
+    if(predCatChart&&p.category_probs){
+      const entries=Object.entries(p.category_probs).sort((a,b)=>b[1]-a[1]);
+      predCatChart.data.labels=entries.map(e=>e[0]);
+      predCatChart.data.datasets[0].data=entries.map(e=>e[1]);
+      predCatChart.update();
+    }
+  }
+
+  function renderGlobalTrend(a){
+    if(!a||!a.time_series||!globalTrendChart) return;
+    const yearly={};
+    Object.keys(a.time_series).forEach(d=>{ const y=(''+d).slice(0,4); yearly[y]=(yearly[y]||0)+(a.time_series[d]||0); });
+    const ys=Object.keys(yearly).sort();
+    globalTrendChart.data.labels=ys;
+    globalTrendChart.data.datasets[0].data=ys.map(y=>yearly[y]);
+    globalTrendChart.update();
+  }
+
   function updateStateUI(stateName){
     if(!statesData) return;
     if(!stateName){
-      stateTrendChart.data.labels = [];
-      stateTrendChart.data.datasets[0].data = [];
-      stateTrendChart.update();
-      stateDistributionChart.data.labels = [];
-      stateDistributionChart.data.datasets[0].data = [];
-      stateDistributionChart.update();
-      trendSubtitle.textContent = "Select a state to view details";
-      theftStats.textContent = assaultStats.textContent = fraudStats.textContent = '--';
+      stateTrendChart.data.labels=[]; stateTrendChart.data.datasets[0].data=[]; stateTrendChart.update();
+      stateDistributionChart.data.labels=[]; stateDistributionChart.data.datasets[0].data=[]; stateDistributionChart.update();
+      trendSubtitle.textContent='Select state';
+      theftStats.textContent=assaultStats.textContent=fraudStats.textContent='—';
       return;
     }
-    const counts = statesData.state_counts || {};
-    const perCat = statesData.per_state_category || {};
-    const perSeries = statesData.per_state_series || {};
-  trendSubtitle.textContent = `${stateName} — ${counts[stateName] || 0} incidents`;
-
-    // series -> aggregate by YEAR for a 'past years' view
-    const series = perSeries[stateName] || {};
-    // convert keys (YYYY-MM-DD) to year and sum
-    const yearly = {};
-    Object.keys(series || {}).forEach(k=>{
-      const year = (''+k).slice(0,4);
-      if(!year) return;
-      yearly[year] = (yearly[year]||0) + (series[k]||0);
-    });
-    const years = Object.keys(yearly).sort();
-    const yearData = years.map(y=>yearly[y]);
-
-    stateTrendChart.data.labels = years;
-    stateTrendChart.data.datasets[0].data = yearData;
-    stateTrendChart.update();
-
-    const cats = perCat[stateName] || {};
-    const catKeys = Object.keys(cats).slice(0,8);
-    const catVals = catKeys.map(k => cats[k]);
-
-    stateDistributionChart.data.labels = catKeys;
-    stateDistributionChart.data.datasets[0].data = catVals;
-    stateDistributionChart.update();
-
-    // update image stats (theft/assault/fraud)
-    const total = Object.values(cats).reduce((s,n)=>s+(n||0),0) || 1;
-    const theft = cats['Theft']||0;
-    const assault = cats['Assault']||0;
-    const fraud = cats['Fraud']||0;
-  theftStats.textContent = `${theft} cases — ${((theft/total)*100).toFixed(1)}%`;
-  assaultStats.textContent = `${assault} cases — ${((assault/total)*100).toFixed(1)}%`;
-  fraudStats.textContent = `${fraud} cases — ${((fraud/total)*100).toFixed(1)}%`;
-
-    // also re-fetch crimes for that state and update map / events
-    loadCrimes({state: stateName});
+    const counts=statesData.state_counts||{}, perCat=statesData.per_state_category||{}, perSeries=statesData.per_state_series||{};
+    trendSubtitle.textContent=`${stateName}: ${counts[stateName]||0} incidents`;
+    const series=perSeries[stateName]||{}, yearly={};
+    Object.keys(series).forEach(k=>{ const y=(''+k).slice(0,4); if(y) yearly[y]=(yearly[y]||0)+(series[k]||0); });
+    const years=Object.keys(yearly).sort();
+    stateTrendChart.data.labels=years; stateTrendChart.data.datasets[0].data=years.map(y=>yearly[y]); stateTrendChart.update();
+    const cats=perCat[stateName]||{}, catKeys=Object.keys(cats).slice(0,8);
+    stateDistributionChart.data.labels=catKeys; stateDistributionChart.data.datasets[0].data=catKeys.map(k=>cats[k]); stateDistributionChart.update();
+    const total=Object.values(cats).reduce((s,n)=>s+(n||0),0)||1;
+    const theft=cats['Theft']||0, assault=cats['Assault']||0, fraud=cats['Fraud']||0;
+    theftStats.textContent=`${theft} cases (${((theft/total)*100).toFixed(1)}%)`;
+    assaultStats.textContent=`${assault} cases (${((assault/total)*100).toFixed(1)}%)`;
+    fraudStats.textContent=`${fraud} cases (${((fraud/total)*100).toFixed(1)}%)`;
+    loadCrimes({state:stateName});
   }
 
-  // Load states summary
   async function loadStates(){
     try{
-      const r = await fetch('/api/states');
-      statesData = await r.json();
-      // populate state selector
-      const stateCounts = statesData.state_counts || {};
-      const keys = Object.keys(stateCounts || {});
+      const r=await fetch('/api/states'); statesData=await r.json();
+      const stateCounts=statesData.state_counts||{}, keys=Object.keys(stateCounts);
       if(keys.length){
-        // reorder select so most frequent states appear first
-        const sorted = keys.sort((a,b)=>stateCounts[b]-stateCounts[a]);
-        let html = '<option value="">All States</option>';
-        for(const s of sorted){ html += `<option value="${s}">${s} — ${stateCounts[s]}</option>`; }
-        stateFilter.innerHTML = html;
+        const sorted=keys.sort((a,b)=>stateCounts[b]-stateCounts[a]);
+        let html='<option value="">All States / UT</option>';
+        for(const s of sorted) html+=`<option value="${s}">${s} — ${stateCounts[s]}</option>`;
+        stateFilter.innerHTML=html;
       }
-      // ensure single change listener
       if(!stateFilter._hasChange){
-        stateFilter.addEventListener('change', (e)=>{ updateStateUI(e.target.value); });
-        stateFilter._hasChange = true;
+        stateFilter.addEventListener('change',e=>{ updateStateUI(e.target.value); });
+        stateFilter._hasChange=true;
       }
-    }catch(e){
-      console.error('loadStates error', e);
-    }
+    }catch(e){ console.error('loadStates error',e); }
   }
 
-  // load crimes optionally filtered
-  async function loadCrimes(opts = {}){
-    refreshBtn.textContent = 'Loading...';
-    refreshBtn.disabled = true;
+  async function loadCrimes(opts={}){
     try{
-      let url = '/api/crimes?limit=2000';
-      if(opts.state) url += '&state=' + encodeURIComponent(opts.state);
-      if(opts.category) url += '&category=' + encodeURIComponent(opts.category);
-      const r = await fetch(url);
-      const data = await r.json();
-      currentEvents = data.features || [];
-      renderEvents(currentEvents);
-      renderMap(currentEvents);
-    }catch(e){
-      console.error('loadCrimes error', e);
-    }finally{
-      refreshBtn.textContent = 'Refresh Data';
-      refreshBtn.disabled = false;
-    }
+      let url='/api/crimes?limit=2000';
+      if(opts.state) url+='&state='+encodeURIComponent(opts.state);
+      if(opts.category) url+='&category='+encodeURIComponent(opts.category);
+      const r=await fetch(url); const data=await r.json();
+      currentEvents=data.features||[];
+      renderEvents(currentEvents); renderMap(currentEvents);
+    }catch(e){ console.error('loadCrimes error',e); }
   }
 
   async function loadAll(){
-    refreshBtn.textContent='Loading...'; refreshBtn.disabled=true;
+    refreshBtn.textContent='Loading…'; refreshBtn.disabled=true;
     try{
-      const [crimesRes, analysisRes, predictRes] = await Promise.all([
+      const [crimesRes,analysisRes,predictRes]=await Promise.all([
         fetch('/api/crimes?limit=2000').then(r=>r.json()),
         fetch('/api/analysis').then(r=>r.json()),
         fetch('/api/predict').then(r=>r.json())
       ]);
-      currentEvents = crimesRes.features || [];
-      currentAnalysis = analysisRes;
-      currentPredict = predictRes;
-      renderEvents(currentEvents);
-      renderMap(currentEvents);
-      renderAnalysis(currentAnalysis);
-      renderHotspots(currentPredict);
-      updateStats();
-      updateStateUI(stateFilter.value); // refresh state UI if selected
+      currentEvents=crimesRes.features||[]; currentAnalysis=analysisRes; currentPredict=predictRes;
+      renderEvents(currentEvents); renderMap(currentEvents);
+      renderAnalysis(currentAnalysis); renderHotspots(currentPredict);
+      renderPredictionUI(currentPredict); renderGlobalTrend(currentAnalysis);
+      updateStats(); updateStateUI(stateFilter.value);
+      lastUpdLabel.textContent='Last updated: '+new Date().toLocaleTimeString('en-IN');
 
-      // populate quick summary panels
+      if(currentAnalysis&&currentAnalysis.distribution){
+        const dist=currentAnalysis.distribution;
+        const top=Object.entries(dist).sort((a,b)=>b[1]-a[1])[0];
+        topCrimeEl.textContent=top?(top[0]+' ('+top[1]+')'):'—';
+        const total=Object.values(dist).reduce((s,n)=>s+(n||0),0)||1;
+        const theft=dist['Theft']||0, assault=dist['Assault']||0, fraud=dist['Fraud']||0;
+        theftStats.textContent=`${theft} cases (${((theft/total)*100).toFixed(1)}%)`;
+        assaultStats.textContent=`${assault} cases (${((assault/total)*100).toFixed(1)}%)`;
+        fraudStats.textContent=`${fraud} cases (${((fraud/total)*100).toFixed(1)}%)`;
+      }
+
       try{
-        // top crime from analysis.distribution
-        if(currentAnalysis && currentAnalysis.distribution){
-          const dist = currentAnalysis.distribution;
-          const top = Object.entries(dist).sort((a,b)=>b[1]-a[1])[0];
-          topCrimeEl.textContent = top ? (top[0] + ' (' + top[1] + ')') : '--';
-        }
-
-        // peak day/hour from predict
-        if(currentPredict){
-          peakDayEl.textContent = currentPredict.peak_day || '--';
-          peakHourEl.textContent = (currentPredict.peak_hour !== undefined) ? (currentPredict.peak_hour + ':00') : '--';
-          hotspotAreaEl.textContent = (currentPredict.hotspots && currentPredict.hotspots[0]) ? (currentPredict.hotspots[0].latitude.toFixed(2) + ',' + currentPredict.hotspots[0].longitude.toFixed(2)) : '--';
-          const maxCnt = currentPredict.hotspots ? Math.max(...currentPredict.hotspots.map(h=>h.count)) : 0;
-          threatLevelEl.textContent = maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
-        }
-
-        // small image stats (from distribution of currentAnalysis)
-        if(currentAnalysis && currentAnalysis.distribution){
-          const cats = currentAnalysis.distribution;
-          const total = Object.values(cats).reduce((s,n)=>s+(n||0),0) || 1;
-          const theft = cats['Theft']||0;
-          const assault = cats['Assault']||0;
-          const fraud = cats['Fraud']||0;
-          theftStats.textContent = theft + ' cases — ' + ((theft/total)*100).toFixed(1) + '%';
-          assaultStats.textContent = assault + ' cases — ' + ((assault/total)*100).toFixed(1) + '%';
-          fraudStats.textContent = fraud + ' cases — ' + ((fraud/total)*100).toFixed(1) + '%';
-        }
-
-        // top offenders (call backend)
-        try{
-          const t = await fetch('/api/top_offenders?limit=3').then(r=>r.json());
-          const list = t.map(item => '<li><b>'+item.name+'</b> — '+item.count+' events</li>').join('');
-          document.getElementById('top3-list').innerHTML = list || '<li class="text-gray-400">No data</li>';
-        }catch(e){ console.warn('top_offenders fetch failed', e); }
-      }catch(e){ console.warn('populate summaries failed', e); }
-    }catch(e){
-      console.error('loadAll error', e);
-    }finally{
-      refreshBtn.textContent='Refresh Data'; refreshBtn.disabled=false;
-    }
+        const t=await fetch('/api/top_offenders?limit=3').then(r=>r.json());
+        document.getElementById('top3-list').innerHTML=t.map((item,i)=>
+          `<div class="prediction-row">
+            <div class="pred-rank">${i+1}</div>
+            <div style="flex:1;font-size:12.5px;font-weight:600;">${item.name}</div>
+            <div style="font-size:11.5px;color:var(--accent);font-weight:700;">${item.count} events</div>
+          </div>`).join('')||'<div style="color:var(--muted);font-size:12px;padding:8px 0;">No data available</div>';
+      }catch(e){ console.warn('top_offenders error',e); }
+    }catch(e){ console.error('loadAll error',e); }
+    finally{ refreshBtn.textContent='↻ Refresh'; refreshBtn.disabled=false; }
   }
 
-  // event handlers
-  refreshBtn.addEventListener('click', ()=> {
-    loadAll();
-    loadStates();
-  });
-  crimeTypeFilter.addEventListener('change', ()=> {
-    // re-render client-side
-    renderEvents(currentEvents);
-    renderMap(currentEvents);
-  });
+  refreshBtn.addEventListener('click',()=>{ loadAll(); loadStates(); });
+  crimeTypeFilter.addEventListener('change',()=>{ renderEvents(currentEvents); renderMap(currentEvents); });
 
-  // initialize
-  initCharts();
-  loadStates();
-  loadAll();
+  initCharts(); loadStates(); loadAll();
 
-  // quick UI utility: click a row to show details in modal (not required but helpful)
-  // (we add a simple handler to show the first event detail when clicking the map)
-  map.on('click', ()=> {
-    // noop: reserved
-  });
+  // ════ REPORT GENERATION ════
+
+  function buildReportHTML(){
+    const now=new Date();
+    const dateStr=now.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    const timeStr=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const selectedState=stateFilter.value||'All India';
+    const selectedCrime=crimeTypeFilter.value||'All';
+
+    // threat level
+    const threatInner=threatLevelEl.querySelector('.threat-pill');
+    const threatText=threatInner?threatInner.textContent:'—';
+    const threatPillClass=threatInner?threatInner.className.replace('threat-pill ',''):'';
+
+    // distributions
+    const dist=(currentAnalysis&&currentAnalysis.distribution)||{};
+    const distEntries=Object.entries(dist).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const distMax=distEntries.length?distEntries[0][1]:1;
+
+    const byDayEntries=Object.entries((currentAnalysis&&currentAnalysis.by_day)||{}).sort((a,b)=>b[1]-a[1]).slice(0,7);
+    const byDayMax=byDayEntries.length?byDayEntries[0][1]:1;
+    const byHourEntries=Object.entries((currentAnalysis&&currentAnalysis.by_hour)||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const byHourMax=byHourEntries.length?byHourEntries[0][1]:1;
+
+    // hotspots
+    const hotspots=(currentPredict&&currentPredict.hotspots)||[];
+    const hotspotRows=hotspots.slice(0,5).map((h,i)=>`<tr>
+      <td style="font-weight:700;color:#1a2c6b;">#${i+1}</td>
+      <td>${h.latitude.toFixed(4)}, ${h.longitude.toFixed(4)}</td>
+      <td>${h.count}</td>
+      <td><span style="padding:2px 8px;border-radius:3px;font-size:10.5px;font-weight:700;background:${h.count>100?'#fee2e2':h.count>40?'#fef3c7':'#dcfce7'};color:${h.count>100?'#b91c1c':h.count>40?'#92400e':'#166534'};">${h.count>100?'HIGH':h.count>40?'MODERATE':'LOW'}</span></td>
+    </tr>`).join('')||'<tr><td colspan="4" style="color:#5a6a8a;text-align:center;">No hotspot data loaded</td></tr>';
+
+    // recent events
+    const filtered=applyFilter(currentEvents).slice(0,10);
+    const eventRows=filtered.map((f,i)=>`<tr>
+      <td style="color:#5a6a8a;font-size:11px;">${i+1}</td>
+      <td>${f.properties.city||'—'}</td>
+      <td>${f.properties.category||'—'}</td>
+      <td>${f.properties.state||'—'}</td>
+      <td>${formatDate(f.properties.timestamp)}</td>
+    </tr>`).join('')||'<tr><td colspan="5" style="color:#5a6a8a;text-align:center;">No events loaded</td></tr>';
+
+    const np=currentPredict&&currentPredict.next_prediction;
+    const nextCrime=np?`${np.category||'—'} at (${np.latitude?np.latitude.toFixed(3):'?'}, ${np.longitude?np.longitude.toFixed(3):'?'})`:'—';
+    const nextCtx=np&&np.context?`${np.context.day}, ${np.context.hour}:00 hrs`:'—';
+
+    const barRows=(entries,max,red=false)=>entries.map(([label,val])=>`
+      <div class="rpt-bar-row">
+        <div class="rpt-bar-label">${label}</div>
+        <div class="rpt-bar-track"><div class="rpt-bar-fill${red?' red':''}" style="width:${max?(val/max*100).toFixed(1):0}%"></div></div>
+        <div class="rpt-bar-count">${val}</div>
+      </div>`).join('');
+
+    return `
+    <div class="rpt-header">
+      <div class="rpt-logo-block">
+        <div class="rpt-emblem">
+          <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#fff" stroke-width="4"/><circle cx="50" cy="50" r="6" fill="#fff"/><line x1="50" y1="8" x2="50" y2="26" stroke="#fff" stroke-width="2"/><line x1="50" y1="74" x2="50" y2="92" stroke="#fff" stroke-width="2"/><line x1="8" y1="50" x2="26" y2="50" stroke="#fff" stroke-width="2"/><line x1="74" y1="50" x2="92" y2="50" stroke="#fff" stroke-width="2"/><line x1="21" y1="21" x2="33" y2="33" stroke="#fff" stroke-width="2"/><line x1="67" y1="67" x2="79" y2="79" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+        <div>
+          <div class="rpt-title">SATARK Intelligence Report</div>
+          <div class="rpt-subtitle">Ministry of Home Affairs | NCRB | Government of India</div>
+          <div style="margin-top:6px;"><span class="rpt-classified">Restricted — Official Use Only</span></div>
+        </div>
+      </div>
+      <div class="rpt-meta">
+        <div><strong>Date:</strong> ${dateStr}</div>
+        <div><strong>Time:</strong> ${timeStr}</div>
+        <div><strong>Scope:</strong> ${selectedState}</div>
+        <div><strong>Filter:</strong> ${selectedCrime}</div>
+        <div><strong>Records Analysed:</strong> ${currentEvents.length}</div>
+      </div>
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">01 — Executive Summary</div>
+      <div class="rpt-grid-3">
+        <div class="rpt-card" style="border-top-color:#c0392b;">
+          <div class="rpt-card-label">Current Threat Level</div>
+          <div style="margin-top:8px;"><span style="display:inline-block;padding:3px 12px;border-radius:3px;font-size:13px;font-weight:700;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;">${threatText}</span></div>
+        </div>
+        <div class="rpt-card">
+          <div class="rpt-card-label">Top Crime Category</div>
+          <div class="rpt-card-value" style="font-size:15px;margin-top:4px;">${topCrimeEl.textContent||'—'}</div>
+        </div>
+        <div class="rpt-card">
+          <div class="rpt-card-label">Events Loaded</div>
+          <div class="rpt-card-value">${currentEvents.length}</div>
+        </div>
+        <div class="rpt-card">
+          <div class="rpt-card-label">Peak Day</div>
+          <div class="rpt-card-value" style="font-size:15px;">${peakDayEl.textContent||'—'}</div>
+        </div>
+        <div class="rpt-card">
+          <div class="rpt-card-label">Peak Hour</div>
+          <div class="rpt-card-value" style="font-size:15px;">${peakHourEl.textContent||'—'}</div>
+        </div>
+        <div class="rpt-card" style="border-top-color:#1a6b3c;">
+          <div class="rpt-card-label">Primary Hotspot</div>
+          <div class="rpt-card-value" style="font-size:13px;color:#1a6b3c;">${hotspotAreaEl.textContent||'—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">02 — Crime Category Distribution</div>
+      ${distEntries.length?barRows(distEntries,distMax):'<div style="color:#5a6a8a;font-size:12px;">No distribution data.</div>'}
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">03 — Temporal Patterns</div>
+      <div class="rpt-grid-2">
+        <div>
+          <div style="font-size:11px;color:#5a6a8a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;font-weight:700;">By Day of Week</div>
+          ${byDayEntries.length?barRows(byDayEntries,byDayMax):'<div style="color:#5a6a8a">No data</div>'}
+        </div>
+        <div>
+          <div style="font-size:11px;color:#5a6a8a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;font-weight:700;">By Hour (top 6)</div>
+          ${byHourEntries.length?barRows(byHourEntries.map(([h,v])=>[h+':00',v]),byHourMax,true):'<div style="color:#5a6a8a">No data</div>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">04 — Hotspot Analysis</div>
+      <table class="rpt-table">
+        <thead><tr><th>Rank</th><th>Coordinates (lat, lon)</th><th>Incident Count</th><th>Risk Level</th></tr></thead>
+        <tbody>${hotspotRows}</tbody>
+      </table>
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">05 — Predictive Intelligence</div>
+      <div class="rpt-grid-2" style="margin-bottom:16px;">
+        <div class="rpt-card" style="border-top-color:#b8860b;">
+          <div class="rpt-card-label">Next Predicted Crime</div>
+          <div style="margin-top:6px;font-size:13px;font-weight:600;color:#1a2340;">${nextCrime}</div>
+        </div>
+        <div class="rpt-card">
+          <div class="rpt-card-label">Predicted Context</div>
+          <div style="margin-top:6px;font-size:13px;font-weight:600;color:#1a2340;">${nextCtx}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rpt-section">
+      <div class="rpt-section-title">06 — Recent Events Sample (up to 10)</div>
+      <table class="rpt-table">
+        <thead><tr><th>#</th><th>City</th><th>Category</th><th>State / UT</th><th>Timestamp</th></tr></thead>
+        <tbody>${eventRows}</tbody>
+      </table>
+    </div>
+
+    <div class="rpt-footer">
+      <div>SATARK — Ministry of Home Affairs, Government of India | Classification: RESTRICTED</div>
+      <div>Generated ${dateStr} at ${timeStr} · Ref: SATARK/${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}</div>
+    </div>`;
+  }
+
+  window.openReportModal=function(){
+    document.getElementById('printable-report').innerHTML=buildReportHTML();
+    document.getElementById('report-modal').classList.add('visible');
+    setTimeout(()=>{
+      document.querySelectorAll('.rpt-bar-fill').forEach(b=>{ const w=b.style.width; b.style.width='0'; requestAnimationFrame(()=>{ b.style.width=w; }); });
+    },80);
+  };
+  window.closeReportModal=function(){ document.getElementById('report-modal').classList.remove('visible'); };
+  document.getElementById('report-modal').addEventListener('click',function(e){ if(e.target===this) closeReportModal(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeReportModal(); });
 
 })();
 </script>
-
 </body>
 </html>
