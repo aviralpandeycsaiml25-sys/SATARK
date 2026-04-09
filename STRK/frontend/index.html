@@ -33,7 +33,6 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; }
-
     html, body { height: 100%; margin: 0; }
 
     body {
@@ -42,6 +41,18 @@
       color: var(--text);
       font-size: 13.5px;
       line-height: 1.55;
+    }
+
+    /* ── LOADING PULSE ── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    .stat-loading {
+      display: inline-block;
+      animation: pulse 1.4s ease-in-out infinite;
+      color: var(--muted) !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      font-family: 'Noto Sans', sans-serif !important;
+      letter-spacing: 0.03em;
     }
 
     /* ── GOVT TOP RIBBON ── */
@@ -93,7 +104,6 @@
       font-size: 11px; color: var(--muted); letter-spacing: 0.08em;
       text-transform: uppercase; margin-top: 2px;
     }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
     .lang-select {
       border: 1px solid var(--border); border-radius: 4px;
       padding: 5px 10px; font-size: 12px; color: var(--text);
@@ -184,7 +194,9 @@
       border-radius: 6px;
       padding: 14px 16px;
       border-top: 3px solid var(--navy);
+      transition: box-shadow 0.2s;
     }
+    .stat-tile:hover { box-shadow: 0 4px 14px rgba(26,44,107,0.1); }
     .stat-tile.accent-red   { border-top-color: var(--accent); }
     .stat-tile.accent-gold  { border-top-color: var(--gold); }
     .stat-tile.accent-green { border-top-color: var(--success); }
@@ -289,6 +301,10 @@
     }
     .prediction-row:last-child { border-bottom: none; }
     .pred-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ── LIVE INDICATOR ── */
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:5px; animation: blink 1.8s ease-in-out infinite; }
 
     /* ── FOOTER ── */
     .site-footer {
@@ -448,7 +464,6 @@
 <header class="site-header">
   <div class="header-inner">
     <div class="logo-emblem" aria-hidden="true">
-      <!-- Ashoka Chakra-style SVG -->
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <circle cx="50" cy="50" r="42" fill="none" stroke="#fff" stroke-width="4"/>
         <circle cx="50" cy="50" r="6" fill="#fff"/>
@@ -469,7 +484,7 @@
     <div style="text-align:right;">
       <div style="font-size:11px;color:var(--muted);">Ministry of Home Affairs</div>
       <div style="font-size:11px;color:var(--muted);">Government of India</div>
-      <div style="font-size:10.5px;color:var(--success);font-weight:600;margin-top:2px;">● System Operational</div>
+      <div style="font-size:10.5px;color:var(--success);font-weight:600;margin-top:2px;"><span class="live-dot"></span>System Operational</div>
     </div>
   </div>
 </header>
@@ -543,32 +558,32 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px;">
     <div class="stat-tile accent-red">
       <div class="stat-tile-label">Threat Level</div>
-      <div class="stat-tile-value danger" id="threat-level">—</div>
-      <div class="stat-tile-sub">Current assessment</div>
+      <div class="stat-tile-value danger" id="threat-level"><span class="stat-loading">Analysing…</span></div>
+      <div class="stat-tile-sub" id="threat-sub">Current assessment</div>
     </div>
     <div class="stat-tile accent-gold">
       <div class="stat-tile-label">Top Crime Category</div>
-      <div class="stat-tile-value" id="top-crime" style="font-size:15px;margin-top:4px;">—</div>
+      <div class="stat-tile-value" id="top-crime" style="font-size:15px;margin-top:4px;"><span class="stat-loading">Loading…</span></div>
       <div class="stat-tile-sub">By incident count</div>
     </div>
     <div class="stat-tile">
       <div class="stat-tile-label">Peak Day</div>
-      <div class="stat-tile-value" id="peak-day">—</div>
+      <div class="stat-tile-value" id="peak-day"><span class="stat-loading">Loading…</span></div>
       <div class="stat-tile-sub">Highest activity</div>
     </div>
     <div class="stat-tile">
       <div class="stat-tile-label">Peak Hour</div>
-      <div class="stat-tile-value" id="peak-hour">—</div>
+      <div class="stat-tile-value" id="peak-hour"><span class="stat-loading">Loading…</span></div>
       <div class="stat-tile-sub">24-hr format</div>
     </div>
     <div class="stat-tile accent-green">
       <div class="stat-tile-label">Primary Hotspot</div>
-      <div class="stat-tile-value success" id="hotspot-area" style="font-size:14px;margin-top:4px;">—</div>
+      <div class="stat-tile-value success" id="hotspot-area" style="font-size:14px;margin-top:4px;"><span class="stat-loading">Mapping…</span></div>
       <div class="stat-tile-sub">Lat / Lon</div>
     </div>
     <div class="stat-tile">
       <div class="stat-tile-label">Peak Time</div>
-      <div class="stat-tile-value" id="peak-time">—</div>
+      <div class="stat-tile-value" id="peak-time"><span class="stat-loading">Loading…</span></div>
       <div class="stat-tile-sub">Predicted window</div>
     </div>
   </div>
@@ -583,7 +598,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Operational Area Map</span>
-          <span class="badge badge-live">● Live</span>
+          <span class="badge badge-live"><span class="live-dot" style="width:5px;height:5px;margin-right:3px;"></span>Live</span>
         </div>
         <div class="card-body" style="padding:10px;">
           <div id="map"></div>
@@ -711,7 +726,7 @@
           </div>
           <div class="card-body">
             <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Predicted Category &amp; Location</div>
-            <div id="next-crime-text" style="font-size:14px;font-weight:700;color:var(--navy);">—</div>
+            <div id="next-crime-text" style="font-size:14px;font-weight:700;color:var(--navy);"><span class="stat-loading">Predicting…</span></div>
             <div id="next-crime-context" style="font-size:11.5px;color:var(--muted);margin-top:4px;"></div>
             <hr class="divider"/>
             <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Hotspot Zones</div>
@@ -744,23 +759,23 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Crime Category Overview</span>
-          <span class="badge badge-info">3 Categories</span>
+          <span class="badge badge-info" id="cat-overview-badge">3 Categories</span>
         </div>
         <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
           <div class="crime-img-box">
             <img src="https://imgs.search.brave.com/vQsEQ7cRbT_hqG794EOnerlHKaHHbodqGiQGU64Z5-c/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90aHVt/YnMuZHJlYW1zdGlt/ZS5jb20vYi90aGll/Zi10YWtpbmctbW9u/ZXktb3V0LXN0ZWVs/LXNhZmUtaW5kb29y/cy1uaWdodC1jbG9z/ZXVwLTE3MDk1OTYx/NS5qcGc" alt="Theft">
             <div class="crime-img-caption">Theft / Burglary</div>
-            <div class="crime-img-stat" id="theft-stats">—</div>
+            <div class="crime-img-stat" id="theft-stats"><span class="stat-loading">Loading…</span></div>
           </div>
           <div class="crime-img-box">
             <img src="https://imgs.search.brave.com/iU1w0tkSB-qduFx4R2ZsemGraDlB89DuqXNPC5QwRdU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjE4/MTUxMzM0My9waG90/by9hYnN0cmFjdC1z/aWxob3VldHRlLmpw/Zz9zPTYxMng2MTIm/dz0wJms9MjAmYz1h/MXhpbjNjZzJhZ01y/OE9RZ282X2xyZjUt/cVlsaGhzRllHd0lR/Nm1LUGFzPQ" alt="Assault">
             <div class="crime-img-caption">Assault / Violent</div>
-            <div class="crime-img-stat" id="assault-stats">—</div>
+            <div class="crime-img-stat" id="assault-stats"><span class="stat-loading">Loading…</span></div>
           </div>
           <div class="crime-img-box">
             <img src="https://imgs.search.brave.com/mGjUhmwddB9gKe8Hgkzq12fPeiLYfcTd5lpCuKyeVHo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzE2LzgyLzg5LzMy/LzM2MF9GXzE2ODI4/OTMyNDhfTkg3REJS/dXZqbTNST2xRN1Fl/dDVPSDR5eTE3ZVkz/eUMuanBn" alt="Fraud">
             <div class="crime-img-caption">Fraud / Cybercrime</div>
-            <div class="crime-img-stat" id="fraud-stats">—</div>
+            <div class="crime-img-stat" id="fraud-stats"><span class="stat-loading">Loading…</span></div>
           </div>
         </div>
       </div>
@@ -781,7 +796,6 @@
             <tbody id="events-tbody"></tbody>
           </table>
         </div>
-        <!-- Pager appended by JS -->
       </div>
 
     </div>
@@ -807,27 +821,28 @@
   const predictionLayer = L.layerGroup().addTo(map);
 
   // ── DOM refs ──
-  const eventsTbody     = document.getElementById('events-tbody');
-  const byDayEl         = document.getElementById('by-day');
-  const byHourEl        = document.getElementById('by-hour');
-  const hotspotsList    = document.getElementById('hotspots-list');
-  const peakDayEl       = document.getElementById('peak-day');
-  const peakHourEl      = document.getElementById('peak-hour');
-  const topCrimeEl      = document.getElementById('top-crime');
-  const hotspotAreaEl   = document.getElementById('hotspot-area');
-  const peakTimeEl      = document.getElementById('peak-time');
-  const threatLevelEl   = document.getElementById('threat-level');
-  const refreshBtn      = document.getElementById('refresh-btn');
-  const crimeTypeFilter = document.getElementById('crime-type-filter');
-  const stateFilter     = document.getElementById('state-filter');
-  const nextCrimeText   = document.getElementById('next-crime-text');
-  const nextCrimeCtx    = document.getElementById('next-crime-context');
-  const theftStats      = document.getElementById('theft-stats');
-  const assaultStats    = document.getElementById('assault-stats');
-  const fraudStats      = document.getElementById('fraud-stats');
-  const trendSubtitle   = document.getElementById('trend-subtitle');
-  const eventsCountBadge= document.getElementById('events-count-badge');
-  const lastUpdLabel    = document.getElementById('last-updated-label');
+  const eventsTbody      = document.getElementById('events-tbody');
+  const byDayEl          = document.getElementById('by-day');
+  const byHourEl         = document.getElementById('by-hour');
+  const hotspotsList     = document.getElementById('hotspots-list');
+  const peakDayEl        = document.getElementById('peak-day');
+  const peakHourEl       = document.getElementById('peak-hour');
+  const topCrimeEl       = document.getElementById('top-crime');
+  const hotspotAreaEl    = document.getElementById('hotspot-area');
+  const peakTimeEl       = document.getElementById('peak-time');
+  const threatLevelEl    = document.getElementById('threat-level');
+  const threatSubEl      = document.getElementById('threat-sub');
+  const refreshBtn       = document.getElementById('refresh-btn');
+  const crimeTypeFilter  = document.getElementById('crime-type-filter');
+  const stateFilter      = document.getElementById('state-filter');
+  const nextCrimeText    = document.getElementById('next-crime-text');
+  const nextCrimeCtx     = document.getElementById('next-crime-context');
+  const theftStats       = document.getElementById('theft-stats');
+  const assaultStats     = document.getElementById('assault-stats');
+  const fraudStats       = document.getElementById('fraud-stats');
+  const trendSubtitle    = document.getElementById('trend-subtitle');
+  const eventsCountBadge = document.getElementById('events-count-badge');
+  const lastUpdLabel     = document.getElementById('last-updated-label');
 
   // ── Charts ──
   let stateTrendChart=null, stateDistributionChart=null,
@@ -850,16 +865,83 @@
   function applyFilter(events){
     const type=crimeTypeFilter.value, state=stateFilter.value;
     let out=events;
-    if(type&&type!=='All') out=out.filter(f=>f.properties.category&&f.properties.category.toLowerCase()===type.toLowerCase());
-    if(state) out=out.filter(f=>f.properties.state&&f.properties.state.toLowerCase()===state.toLowerCase());
+    if(type && type!=='All') out=out.filter(f=>f.properties.category && f.properties.category.toLowerCase()===type.toLowerCase());
+    if(state) out=out.filter(f=>f.properties.state && f.properties.state.toLowerCase()===state.toLowerCase());
     return out;
   }
 
-  function computeTopCrime(events){
-    const count={};
-    for(const f of events){ const c=f.properties.category||'Unknown'; count[c]=(count[c]||0)+1; }
-    const top=Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
-    return top?`${top[0]} (${top[1]})`:'—';
+  // ── FULLY DYNAMIC updateStats ──
+  // Called after BOTH currentAnalysis and currentPredict are populated.
+  function updateStats(){
+    // ── Top Crime Category (from analysis distribution, most accurate) ──
+    if(currentAnalysis && currentAnalysis.distribution){
+      const dist = currentAnalysis.distribution;
+      const entries = Object.entries(dist).sort((a,b)=>b[1]-a[1]);
+      if(entries.length){
+        const [name, count] = entries[0];
+        topCrimeEl.textContent = `${name} (${count})`;
+      }
+    } else if(currentEvents.length){
+      // Fallback: compute from loaded events
+      const count={};
+      for(const f of currentEvents){ const c=f.properties.category||'Unknown'; count[c]=(count[c]||0)+1; }
+      const top=Object.entries(count).sort((a,b)=>b[1]-a[1])[0];
+      if(top) topCrimeEl.textContent=`${top[0]} (${top[1]})`;
+    }
+
+    // ── Stats from /api/predict ──
+    const pd = currentPredict;
+    if(pd){
+      // Peak Day — comes directly from backend argmax of by_day
+      peakDayEl.textContent = pd.peak_day || '—';
+
+      // Peak Hour — integer from backend e.g. 16 → "16:00"
+      const ph = pd.peak_hour;
+      const phStr = (ph !== undefined && ph !== null) ? String(ph).padStart(2,'0') + ':00' : '—';
+      peakHourEl.textContent = phStr;
+      peakTimeEl.textContent = phStr !== '—' ? phStr + ' hrs' : '—';
+
+      // Primary Hotspot — densest cluster from KMeans
+      if(pd.hotspots && pd.hotspots.length){
+        const densest = pd.hotspots.reduce((best,h) => h.count > best.count ? h : best, pd.hotspots[0]);
+        hotspotAreaEl.textContent = densest.latitude.toFixed(3) + ', ' + densest.longitude.toFixed(3);
+      } else {
+        hotspotAreaEl.textContent = '—';
+      }
+
+      // Threat Level — based on total events + max hotspot cluster density
+      const totalEvents = currentEvents.length;
+      const maxHotspotCount = pd.hotspots && pd.hotspots.length
+        ? Math.max(...pd.hotspots.map(h=>h.count)) : 0;
+
+      let lvl, subText;
+      if(totalEvents > 8000 || maxHotspotCount > 300){
+        lvl = 'CRITICAL'; subText = 'Immediate action required';
+      } else if(totalEvents > 3000 || maxHotspotCount > 100){
+        lvl = 'HIGH'; subText = 'Elevated risk zones detected';
+      } else if(totalEvents > 800 || maxHotspotCount > 30){
+        lvl = 'MODERATE'; subText = 'Monitor closely';
+      } else {
+        lvl = 'LOW'; subText = 'Situation stable';
+      }
+      threatLevelEl.innerHTML = `<span class="threat-pill threat-${lvl}">${lvl}</span>`;
+      if(threatSubEl) threatSubEl.textContent = subText;
+    }
+
+    // ── Crime category stats (Theft / Assault / Fraud) from analysis ──
+    if(currentAnalysis && currentAnalysis.distribution){
+      const dist = currentAnalysis.distribution;
+      const total = Object.values(dist).reduce((s,n)=>s+(n||0),0) || 1;
+
+      // Theft + Burglary combined
+      const theftCount  = (dist['Theft']||0) + (dist['Burglary']||0);
+      const assaultCount = (dist['Assault']||0) + (dist['Robbery']||0) + (dist['Kidnapping']||0);
+      const fraudCount  = (dist['Fraud']||0) + (dist['Vandalism']||0);
+
+      theftStats.textContent   = `${theftCount} cases (${((theftCount/total)*100).toFixed(1)}%)`;
+      assaultStats.textContent = `${assaultCount} cases (${((assaultCount/total)*100).toFixed(1)}%)`;
+      fraudStats.textContent   = `${fraudCount} cases (${((fraudCount/total)*100).toFixed(1)}%)`;
+    }
   }
 
   // Events table with pagination
@@ -952,7 +1034,7 @@
       </div>`).join('');
     byHourEl.innerHTML=byHour.map(([h,v])=>`
       <div class="analysis-row">
-        <span style="width:80px;font-size:12px;">${h}:00</span>
+        <span style="width:80px;font-size:12px;">${String(h).padStart(2,'0')}:00</span>
         <div class="analysis-bar-wrap"><div class="analysis-bar red" style="width:${(v/hourMax*100).toFixed(1)}%"></div></div>
         <span style="font-size:12px;font-weight:600;color:var(--accent);width:30px;text-align:right;">${v}</span>
       </div>`).join('');
@@ -960,7 +1042,8 @@
 
   function renderHotspots(p){
     hotspotsLayer.clearLayers(); predictionLayer.clearLayers(); hotspotsList.innerHTML='';
-    (p.hotspots||[]).slice(0,4).forEach((h,i)=>{
+    const sorted=[...(p.hotspots||[])].sort((a,b)=>b.count-a.count);
+    sorted.slice(0,4).forEach((h,i)=>{
       L.circle([h.latitude,h.longitude],{radius:Math.max(500,h.count*80),color:'#c0392b',fillColor:'#c0392b',fillOpacity:0.07,weight:1.5}).addTo(hotspotsLayer);
       hotspotsList.innerHTML+=`<div class="prediction-row">
         <div class="pred-rank">${i+1}</div>
@@ -970,20 +1053,6 @@
     });
     if(p.next_prediction&&p.next_prediction.latitude&&p.next_prediction.longitude){
       L.marker([p.next_prediction.latitude,p.next_prediction.longitude]).bindPopup('Predicted: '+(p.next_prediction.category||'—')).addTo(predictionLayer);
-    }
-  }
-
-  function updateStats(){
-    topCrimeEl.textContent=computeTopCrime(currentEvents);
-    const pd=currentPredict;
-    if(pd){
-      peakDayEl.textContent=pd.peak_day||'—';
-      peakHourEl.textContent=(pd.peak_hour!==undefined)?(pd.peak_hour+':00'):'—';
-      peakTimeEl.textContent=(pd.peak_hour!==undefined)?(pd.peak_hour+':00 hrs'):'—';
-      hotspotAreaEl.textContent=(pd.hotspots&&pd.hotspots[0])?(pd.hotspots[0].latitude.toFixed(3)+', '+pd.hotspots[0].longitude.toFixed(3)):'—';
-      const maxCnt=pd.hotspots&&pd.hotspots.length?Math.max(...pd.hotspots.map(h=>h.count)):0;
-      const lvl=maxCnt>200?'CRITICAL':maxCnt>80?'HIGH':maxCnt>30?'MODERATE':'LOW';
-      threatLevelEl.innerHTML=`<span class="threat-pill threat-${lvl}">${lvl}</span>`;
     }
   }
 
@@ -1012,15 +1081,18 @@
 
   function renderPredictionUI(p){
     if(!p) return;
-    if(p.next_prediction&&p.next_prediction.category){
+    if(p.next_prediction && p.next_prediction.category){
       const np=p.next_prediction;
       nextCrimeText.textContent=`${np.category} @ (${np.latitude?np.latitude.toFixed(3):'?'}, ${np.longitude?np.longitude.toFixed(3):'?'})`;
-      if(np.context) nextCrimeCtx.textContent=`Context: ${np.context.day}, ${np.context.hour}:00 hrs`;
-    } else { nextCrimeText.textContent='—'; nextCrimeCtx.textContent=''; }
-    if(predCatChart&&p.category_probs){
+      if(np.context) nextCrimeCtx.textContent=`Context: ${np.context.day}, ${String(np.context.hour).padStart(2,'0')}:00 hrs`;
+    } else {
+      nextCrimeText.textContent='—';
+      nextCrimeCtx.textContent='';
+    }
+    if(predCatChart && p.category_probs){
       const entries=Object.entries(p.category_probs).sort((a,b)=>b[1]-a[1]);
       predCatChart.data.labels=entries.map(e=>e[0]);
-      predCatChart.data.datasets[0].data=entries.map(e=>e[1]);
+      predCatChart.data.datasets[0].data=entries.map(e=>parseFloat(e[1].toFixed(4)));
       predCatChart.update();
     }
   }
@@ -1041,7 +1113,17 @@
       stateTrendChart.data.labels=[]; stateTrendChart.data.datasets[0].data=[]; stateTrendChart.update();
       stateDistributionChart.data.labels=[]; stateDistributionChart.data.datasets[0].data=[]; stateDistributionChart.update();
       trendSubtitle.textContent='Select state';
-      theftStats.textContent=assaultStats.textContent=fraudStats.textContent='—';
+      // Show national totals in crime overview boxes when no state selected
+      if(currentAnalysis && currentAnalysis.distribution){
+        const dist=currentAnalysis.distribution;
+        const total=Object.values(dist).reduce((s,n)=>s+(n||0),0)||1;
+        const theftCount=(dist['Theft']||0)+(dist['Burglary']||0);
+        const assaultCount=(dist['Assault']||0)+(dist['Robbery']||0)+(dist['Kidnapping']||0);
+        const fraudCount=(dist['Fraud']||0)+(dist['Vandalism']||0);
+        theftStats.textContent=`${theftCount} cases (${((theftCount/total)*100).toFixed(1)}%)`;
+        assaultStats.textContent=`${assaultCount} cases (${((assaultCount/total)*100).toFixed(1)}%)`;
+        fraudStats.textContent=`${fraudCount} cases (${((fraudCount/total)*100).toFixed(1)}%)`;
+      }
       return;
     }
     const counts=statesData.state_counts||{}, perCat=statesData.per_state_category||{}, perSeries=statesData.per_state_series||{};
@@ -1053,16 +1135,20 @@
     const cats=perCat[stateName]||{}, catKeys=Object.keys(cats).slice(0,8);
     stateDistributionChart.data.labels=catKeys; stateDistributionChart.data.datasets[0].data=catKeys.map(k=>cats[k]); stateDistributionChart.update();
     const total=Object.values(cats).reduce((s,n)=>s+(n||0),0)||1;
-    const theft=cats['Theft']||0, assault=cats['Assault']||0, fraud=cats['Fraud']||0;
-    theftStats.textContent=`${theft} cases (${((theft/total)*100).toFixed(1)}%)`;
-    assaultStats.textContent=`${assault} cases (${((assault/total)*100).toFixed(1)}%)`;
-    fraudStats.textContent=`${fraud} cases (${((fraud/total)*100).toFixed(1)}%)`;
+    const theftCount=(cats['Theft']||0)+(cats['Burglary']||0);
+    const assaultCount=(cats['Assault']||0)+(cats['Robbery']||0)+(cats['Kidnapping']||0);
+    const fraudCount=(cats['Fraud']||0)+(cats['Vandalism']||0);
+    theftStats.textContent=`${theftCount} cases (${((theftCount/total)*100).toFixed(1)}%)`;
+    assaultStats.textContent=`${assaultCount} cases (${((assaultCount/total)*100).toFixed(1)}%)`;
+    fraudStats.textContent=`${fraudCount} cases (${((fraudCount/total)*100).toFixed(1)}%)`;
     loadCrimes({state:stateName});
   }
 
   async function loadStates(){
     try{
-      const r=await fetch('/api/states'); statesData=await r.json();
+      const r=await fetch('/api/states');
+      if(!r.ok) throw new Error('states fetch failed');
+      statesData=await r.json();
       const stateCounts=statesData.state_counts||{}, keys=Object.keys(stateCounts);
       if(keys.length){
         const sorted=keys.sort((a,b)=>stateCounts[b]-stateCounts[a]);
@@ -1071,7 +1157,7 @@
         stateFilter.innerHTML=html;
       }
       if(!stateFilter._hasChange){
-        stateFilter.addEventListener('change',e=>{ updateStateUI(e.target.value); });
+        stateFilter.addEventListener('change',e=>{ currentPage=1; updateStateUI(e.target.value); });
         stateFilter._hasChange=true;
       }
     }catch(e){ console.error('loadStates error',e); }
@@ -1082,57 +1168,86 @@
       let url='/api/crimes?limit=2000';
       if(opts.state) url+='&state='+encodeURIComponent(opts.state);
       if(opts.category) url+='&category='+encodeURIComponent(opts.category);
-      const r=await fetch(url); const data=await r.json();
+      const r=await fetch(url);
+      if(!r.ok) throw new Error('crimes fetch failed');
+      const data=await r.json();
       currentEvents=data.features||[];
-      renderEvents(currentEvents); renderMap(currentEvents);
+      renderEvents(currentEvents);
+      renderMap(currentEvents);
     }catch(e){ console.error('loadCrimes error',e); }
   }
 
   async function loadAll(){
     refreshBtn.textContent='Loading…'; refreshBtn.disabled=true;
     try{
-      const [crimesRes,analysisRes,predictRes]=await Promise.all([
-        fetch('/api/crimes?limit=2000').then(r=>r.json()),
-        fetch('/api/analysis').then(r=>r.json()),
-        fetch('/api/predict').then(r=>r.json())
+      // Fetch all three APIs in parallel
+      const [crimesRes, analysisRes, predictRes] = await Promise.all([
+        fetch('/api/crimes?limit=2000').then(r=>{ if(!r.ok) throw new Error('crimes'); return r.json(); }),
+        fetch('/api/analysis').then(r=>{ if(!r.ok) throw new Error('analysis'); return r.json(); }),
+        fetch('/api/predict').then(r=>{ if(!r.ok) throw new Error('predict'); return r.json(); })
       ]);
-      currentEvents=crimesRes.features||[]; currentAnalysis=analysisRes; currentPredict=predictRes;
-      renderEvents(currentEvents); renderMap(currentEvents);
-      renderAnalysis(currentAnalysis); renderHotspots(currentPredict);
-      renderPredictionUI(currentPredict); renderGlobalTrend(currentAnalysis);
-      updateStats(); updateStateUI(stateFilter.value);
-      lastUpdLabel.textContent='Last updated: '+new Date().toLocaleTimeString('en-IN');
 
-      if(currentAnalysis&&currentAnalysis.distribution){
-        const dist=currentAnalysis.distribution;
-        const top=Object.entries(dist).sort((a,b)=>b[1]-a[1])[0];
-        topCrimeEl.textContent=top?(top[0]+' ('+top[1]+')'):'—';
-        const total=Object.values(dist).reduce((s,n)=>s+(n||0),0)||1;
-        const theft=dist['Theft']||0, assault=dist['Assault']||0, fraud=dist['Fraud']||0;
-        theftStats.textContent=`${theft} cases (${((theft/total)*100).toFixed(1)}%)`;
-        assaultStats.textContent=`${assault} cases (${((assault/total)*100).toFixed(1)}%)`;
-        fraudStats.textContent=`${fraud} cases (${((fraud/total)*100).toFixed(1)}%)`;
-      }
+      currentEvents  = crimesRes.features || [];
+      currentAnalysis = analysisRes;
+      currentPredict  = predictRes;
 
+      // Render all sections
+      renderEvents(currentEvents);
+      renderMap(currentEvents);
+      renderAnalysis(currentAnalysis);
+      renderHotspots(currentPredict);
+      renderPredictionUI(currentPredict);
+      renderGlobalTrend(currentAnalysis);
+
+      // ── THIS IS THE KEY CALL — all stat tiles updated here ──
+      updateStats();
+
+      // Update state-specific charts if a state is selected
+      updateStateUI(stateFilter.value);
+
+      // Timestamp
+      lastUpdLabel.textContent = 'Last updated: ' + new Date().toLocaleTimeString('en-IN');
+
+      // Top offenders / cities list
       try{
         const t=await fetch('/api/top_offenders?limit=3').then(r=>r.json());
-        document.getElementById('top3-list').innerHTML=t.map((item,i)=>
-          `<div class="prediction-row">
-            <div class="pred-rank">${i+1}</div>
-            <div style="flex:1;font-size:12.5px;font-weight:600;">${item.name}</div>
-            <div style="font-size:11.5px;color:var(--accent);font-weight:700;">${item.count} events</div>
-          </div>`).join('')||'<div style="color:var(--muted);font-size:12px;padding:8px 0;">No data available</div>';
+        document.getElementById('top3-list').innerHTML = t.length
+          ? t.map((item,i)=>`<div class="prediction-row">
+              <div class="pred-rank">${i+1}</div>
+              <div style="flex:1;font-size:12.5px;font-weight:600;">${item.name}</div>
+              <div style="font-size:11.5px;color:var(--accent);font-weight:700;">${item.count} events</div>
+            </div>`).join('')
+          : '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No data available</div>';
       }catch(e){ console.warn('top_offenders error',e); }
-    }catch(e){ console.error('loadAll error',e); }
-    finally{ refreshBtn.textContent='↻ Refresh'; refreshBtn.disabled=false; }
+
+    }catch(e){
+      console.error('loadAll error',e);
+      // Show error state in tiles
+      [threatLevelEl, topCrimeEl, peakDayEl, peakHourEl, hotspotAreaEl, peakTimeEl].forEach(el=>{
+        if(el.querySelector('.stat-loading')) el.textContent = 'Error';
+      });
+    } finally {
+      refreshBtn.textContent='↻ Refresh';
+      refreshBtn.disabled=false;
+    }
   }
 
-  refreshBtn.addEventListener('click',()=>{ loadAll(); loadStates(); });
-  crimeTypeFilter.addEventListener('change',()=>{ renderEvents(currentEvents); renderMap(currentEvents); });
+  // ── Event listeners ──
+  refreshBtn.addEventListener('click',()=>{ currentPage=1; loadAll(); loadStates(); });
+  crimeTypeFilter.addEventListener('change',()=>{ currentPage=1; renderEvents(currentEvents); renderMap(currentEvents); });
 
-  initCharts(); loadStates(); loadAll();
+  // ── Auto-refresh every 60 seconds ──
+  setInterval(()=>{ loadAll(); }, 60000);
 
-  // ════ REPORT GENERATION ════
+  // ── Boot ──
+  initCharts();
+  loadStates();
+  loadAll();
+
+
+  // ════════════════════════════════
+  // ════ REPORT GENERATION ════════
+  // ════════════════════════════════
 
   function buildReportHTML(){
     const now=new Date();
@@ -1141,12 +1256,9 @@
     const selectedState=stateFilter.value||'All India';
     const selectedCrime=crimeTypeFilter.value||'All';
 
-    // threat level
     const threatInner=threatLevelEl.querySelector('.threat-pill');
     const threatText=threatInner?threatInner.textContent:'—';
-    const threatPillClass=threatInner?threatInner.className.replace('threat-pill ',''):'';
 
-    // distributions
     const dist=(currentAnalysis&&currentAnalysis.distribution)||{};
     const distEntries=Object.entries(dist).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const distMax=distEntries.length?distEntries[0][1]:1;
@@ -1156,16 +1268,14 @@
     const byHourEntries=Object.entries((currentAnalysis&&currentAnalysis.by_hour)||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
     const byHourMax=byHourEntries.length?byHourEntries[0][1]:1;
 
-    // hotspots
-    const hotspots=(currentPredict&&currentPredict.hotspots)||[];
+    const hotspots=[...(currentPredict&&currentPredict.hotspots||[])].sort((a,b)=>b.count-a.count);
     const hotspotRows=hotspots.slice(0,5).map((h,i)=>`<tr>
       <td style="font-weight:700;color:#1a2c6b;">#${i+1}</td>
       <td>${h.latitude.toFixed(4)}, ${h.longitude.toFixed(4)}</td>
       <td>${h.count}</td>
       <td><span style="padding:2px 8px;border-radius:3px;font-size:10.5px;font-weight:700;background:${h.count>100?'#fee2e2':h.count>40?'#fef3c7':'#dcfce7'};color:${h.count>100?'#b91c1c':h.count>40?'#92400e':'#166534'};">${h.count>100?'HIGH':h.count>40?'MODERATE':'LOW'}</span></td>
-    </tr>`).join('')||'<tr><td colspan="4" style="color:#5a6a8a;text-align:center;">No hotspot data loaded</td></tr>';
+    </tr>`).join('')||'<tr><td colspan="4" style="color:#5a6a8a;text-align:center;">No hotspot data</td></tr>';
 
-    // recent events
     const filtered=applyFilter(currentEvents).slice(0,10);
     const eventRows=filtered.map((f,i)=>`<tr>
       <td style="color:#5a6a8a;font-size:11px;">${i+1}</td>
@@ -1173,11 +1283,15 @@
       <td>${f.properties.category||'—'}</td>
       <td>${f.properties.state||'—'}</td>
       <td>${formatDate(f.properties.timestamp)}</td>
-    </tr>`).join('')||'<tr><td colspan="5" style="color:#5a6a8a;text-align:center;">No events loaded</td></tr>';
+    </tr>`).join('')||'<tr><td colspan="5" style="color:#5a6a8a;text-align:center;">No events</td></tr>';
 
     const np=currentPredict&&currentPredict.next_prediction;
     const nextCrime=np?`${np.category||'—'} at (${np.latitude?np.latitude.toFixed(3):'?'}, ${np.longitude?np.longitude.toFixed(3):'?'})`:'—';
-    const nextCtx=np&&np.context?`${np.context.day}, ${np.context.hour}:00 hrs`:'—';
+    const nextCtx=np&&np.context?`${np.context.day}, ${String(np.context.hour).padStart(2,'0')}:00 hrs`:'—';
+
+    const pd=currentPredict;
+    const phStr=pd&&(pd.peak_hour!==undefined)?String(pd.peak_hour).padStart(2,'0')+':00':'—';
+    const densestHotspot=hotspots.length?`${hotspots[0].latitude.toFixed(3)}, ${hotspots[0].longitude.toFixed(3)}`:'—';
 
     const barRows=(entries,max,red=false)=>entries.map(([label,val])=>`
       <div class="rpt-bar-row">
@@ -1224,15 +1338,15 @@
         </div>
         <div class="rpt-card">
           <div class="rpt-card-label">Peak Day</div>
-          <div class="rpt-card-value" style="font-size:15px;">${peakDayEl.textContent||'—'}</div>
+          <div class="rpt-card-value" style="font-size:15px;">${pd&&pd.peak_day?pd.peak_day:'—'}</div>
         </div>
         <div class="rpt-card">
           <div class="rpt-card-label">Peak Hour</div>
-          <div class="rpt-card-value" style="font-size:15px;">${peakHourEl.textContent||'—'}</div>
+          <div class="rpt-card-value" style="font-size:15px;">${phStr}</div>
         </div>
         <div class="rpt-card" style="border-top-color:#1a6b3c;">
           <div class="rpt-card-label">Primary Hotspot</div>
-          <div class="rpt-card-value" style="font-size:13px;color:#1a6b3c;">${hotspotAreaEl.textContent||'—'}</div>
+          <div class="rpt-card-value" style="font-size:13px;color:#1a6b3c;">${densestHotspot}</div>
         </div>
       </div>
     </div>
@@ -1251,7 +1365,7 @@
         </div>
         <div>
           <div style="font-size:11px;color:#5a6a8a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;font-weight:700;">By Hour (top 6)</div>
-          ${byHourEntries.length?barRows(byHourEntries.map(([h,v])=>[h+':00',v]),byHourMax,true):'<div style="color:#5a6a8a">No data</div>'}
+          ${byHourEntries.length?barRows(byHourEntries.map(([h,v])=>[String(h).padStart(2,'0')+':00',v]),byHourMax,true):'<div style="color:#5a6a8a">No data</div>'}
         </div>
       </div>
     </div>
