@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 import pandas as pd
 from sklearn.cluster import KMeans
 from math import radians, cos, sin, asin, sqrt
@@ -20,21 +20,25 @@ app.add_middleware(
 
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
-
+# OPEN LOGIN FIRST
+# OPEN LOGIN PAGE FIRST
 @app.get("/")
-def serve_frontend():
-    # support either frontend/index.html or frontend/frontend/index.html depending on repo layout
-    p1 = Path("frontend/index.html")
-    p2 = Path("frontend/frontend/index.html")
-    if p1.exists():
-        return FileResponse(str(p1))
-    if p2.exists():
-        return FileResponse(str(p2))
-    return JSONResponse({"error": "index.html not found"}, status_code=500)
+def serve_login():
+    return FileResponse("frontend/login.html")
+
+# DASHBOARD PAGE
+@app.get("/index.html")
+def serve_index():
+    return FileResponse("frontend/index.html")
+
 
 df = pd.read_csv("crimes.csv", parse_dates=["timestamp"])
 by_day = df['timestamp'].dt.day_name().value_counts().to_dict()
 by_hour = df['timestamp'].dt.hour.value_counts().to_dict()
+
+# Precompute global category distribution
+category_counts = df['category'].value_counts()
+all_categories = category_counts.index.tolist()
 
 
 # --- city -> state mapping (best-effort) ---
@@ -184,9 +188,77 @@ def location_summary(lat: float = Query(...), lon: float = Query(...), radius_km
 def get_predict():
     peak_day = max(by_day, key=by_day.get)
     peak_hour = max(by_hour, key=by_hour.get)
-    kmeans = KMeans(n_clusters=7, random_state=0).fit(df[['latitude','longitude']])
+
+    # Hotspots via KMeans over all points
+    k = 7 if len(df) >= 7 else max(1, len(df))
+    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(df[['latitude','longitude']])
     centers = kmeans.cluster_centers_.tolist()
     labels = kmeans.labels_
-    counts = [int((labels==i).sum()) for i in range(7)]
+    counts = [int((labels==i).sum()) for i in range(k)]
     hotspots = [{"latitude": c[0], "longitude": c[1], "count": cnt} for c, cnt in zip(centers, counts)]
-    return {"peak_day": peak_day, "peak_hour": int(peak_hour), "hotspots": hotspots}
+
+    # Demo "next crime" category probabilities conditioned on current time context
+    now = pd.Timestamp.now()
+    cur_hour = int(now.hour)
+    cur_day = now.day_name()
+
+    # Smoothing to avoid zero probabilities
+    alpha = 1.0
+
+    # Hour-conditioned
+    hour_mask = df['timestamp'].dt.hour == cur_hour
+    hour_counts = df.loc[hour_mask, 'category'].value_counts()
+    # Day-conditioned
+    day_mask = df['timestamp'].dt.day_name() == cur_day
+    day_counts = df.loc[day_mask, 'category'].value_counts()
+
+    # Combine signals: base + hour + day
+    combined = {}
+    base_total = category_counts.sum()
+    for cat in all_categories:
+        base = category_counts.get(cat, 0)
+        h = hour_counts.get(cat, 0)
+        d = day_counts.get(cat, 0)
+        # Weighted sum with Laplace smoothing
+        score = (base + h*1.5 + d*1.2 + alpha)
+        combined[cat] = float(score)
+    total = sum(combined.values()) or 1.0
+    category_probs = {cat: (val/total) for cat, val in combined.items()}
+
+    # Predicted category: argmax
+    next_category = max(category_probs.items(), key=lambda kv: kv[1])[0] if category_probs else None
+
+    # For predicted location: cluster on the subset of that category if possible
+    pred_lat = None
+    pred_lon = None
+    if next_category is not None:
+        sub = df[df['category'] == next_category]
+        if len(sub) >= 3:
+            kk = 3 if len(sub) >= 3 else 1
+            km2 = KMeans(n_clusters=kk, random_state=0, n_init=10).fit(sub[['latitude','longitude']])
+            centers2 = km2.cluster_centers_
+            labels2 = km2.labels_
+            # pick densest cluster in this category
+            counts2 = [(labels2==i).sum() for i in range(kk)]
+            j = int(np.argmax(counts2))
+            pred_lat, pred_lon = float(centers2[j][0]), float(centers2[j][1])
+        else:
+            # fallback to top overall hotspot
+            j = int(np.argmax(counts)) if counts else 0
+            pred_lat, pred_lon = (float(centers[j][0]), float(centers[j][1])) if centers else (None, None)
+
+    next_prediction = {
+        "category": next_category,
+        "probability": float(category_probs.get(next_category, 0.0)) if next_category else 0.0,
+        "latitude": pred_lat,
+        "longitude": pred_lon,
+        "context": {"hour": cur_hour, "day": cur_day}
+    }
+
+    return {
+        "peak_day": peak_day,
+        "peak_hour": int(peak_hour),
+        "hotspots": hotspots,
+        "category_probs": category_probs,
+        "next_prediction": next_prediction
+    }
