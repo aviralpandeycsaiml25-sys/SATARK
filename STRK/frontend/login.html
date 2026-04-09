@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satark | Authority Login</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+    font-family:'Inter',sans-serif;
+    background-color:#f8fafc;
+}
+.satark-blue{background-color:#1e3a8a;}
+.map-bg{
+    background-image:
+    linear-gradient(rgba(30,58,138,0.05),rgba(30,58,138,0.05)),
+    url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+}
+.fade-in{animation:fadeIn .5s ease-out;}
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
+}
+</style>
+</head>
+
+<body class="map-bg min-h-screen flex flex-col">
+
+<!-- HEADER -->
+<header class="w-full p-4 flex justify-between items-center bg-white border-b border-gray-200">
+
+<div class="flex items-center space-x-4">
+<div class="h-12 w-12 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold text-xs text-center leading-none">
+STRK<br>LOGO
+</div>
+
+<div>
+<h1 class="text-xl font-bold text-blue-900 tracking-tight">SATARK</h1>
+<p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">
+CRIME PREDECTION HOTSPOT MAPPING
+</p>
+</div>
+</div>
+
+<span class="text-xs font-bold text-red-600 uppercase flex items-center">
+<span class="w-2 h-2 bg-red-600 rounded-full animate-pulse mr-2"></span>
+Emergency: 1070 / 1077
+</span>
+
+</header>
+
+<!-- MAIN -->
+<main class="flex-grow flex items-center justify-center p-4 md:p-8">
+
+<div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 rounded-2xl shadow-2xl bg-white border border-gray-100 overflow-hidden">
+
+<!-- LEFT INFO PANEL -->
+<div class="satark-blue hidden lg:flex flex-col justify-between p-12 text-white">
+
+<div>
+<h2 class="text-3xl font-bold mb-6">
+Decision Support System for Early Warning
+</h2>
+
+<p class="text-blue-100 text-lg mb-8 leading-relaxed">
+Access the integrated platform for multi-hazard risk management,
+real-time weather monitoring, and inter-agency coordination.
+</p>
+</div>
+
+<div class="text-xs text-blue-300">
+© 2025 Satark - DEVPAGLU. Developed in Deviathon at GLA Mathura.
+</div>
+
+</div>
+
+<!-- LOGIN PANEL -->
+<div class="p-8 md:p-12 flex flex-col justify-center bg-white fade-in">
+
+<div class="mb-8">
+<h3 class="text-2xl font-bold text-gray-900 mb-2">
+Agency Access
+</h3>
+<p class="text-gray-500">
+Sign in to your official command center account.
+</p>
+</div>
+
+<form id="login-form" class="space-y-5">
+
+<!-- USERNAME -->
+<div>
+<label class="block mb-2 text-sm font-semibold text-gray-700">
+Official ID / Username
+</label>
+
+<input type="text"
+required
+placeholder="e.g. OSDMA_9921"
+class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+</div>
+
+<!-- PASSWORD -->
+<div>
+<label class="block mb-2 text-sm font-semibold text-gray-700">
+Password
+</label>
+
+<input type="password"
+required
+placeholder="••••••••"
+class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+</div>
+
+<button type="submit"
+class="w-full satark-blue text-white font-bold py-3.5 rounded-lg hover:bg-blue-800 transition active:scale-[0.98] shadow-lg">
+Secure Login
+</button>
+
+</form>
+
+<!-- SECURITY NOTICE -->
+<div class="mt-8 pt-6 border-t border-gray-100">
+<p class="text-xs text-gray-500 leading-tight">
+<strong>Security Notice:</strong>
+All login attempts are recorded. Unauthorized access to the Satark portal
+is a punishable offense under the IT Act.
+</p>
+</div>
+
+</div>
+</div>
+</main>
+
+<!-- FOOTER -->
+<footer class="p-6 text-center text-xs text-gray-400">
+<p>This portal is intended for official use by OSDMA authorized personnel only.</p>
+</footer>
+
+<script>
+/* SIMPLE LOGIN REDIRECT */
+document.getElementById("login-form").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    const btn = this.querySelector("button");
+    btn.innerHTML="Logging in...";
+    btn.disabled=true;
+
+    // redirect through FastAPI route
+    setTimeout(()=>{
+        window.location.href="/index.html";
+    },1000);
+});
+</script>
+
+</body>
+</html>
